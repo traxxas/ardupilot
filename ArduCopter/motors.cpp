@@ -2,6 +2,9 @@
 
 #include "Copter.h"
 
+#include <board_config.h>
+#include <stm32_bkp.h>
+
 #define ARM_DELAY               20  // called at 10hz so 2 seconds
 #define DISARM_DELAY            20  // called at 10hz so 2 seconds
 #define AUTO_TRIM_DELAY         100 // called at 10hz so 10 seconds
@@ -11,71 +14,31 @@
 
 static uint8_t auto_disarming_counter;
 
+
 // arm_motors_check - checks for pilot input to arm or disarm the copter
 // called at 10hz
 void Copter::arm_motors_check()
 {
-    static int16_t arming_counter;
-
     // ensure throttle is down
     if (channel_throttle->control_in > 0) {
-        arming_counter = 0;
         return;
     }
 
-    int16_t tmp = channel_yaw->control_in;
-
-    // full right
-    if (tmp > 4000) {
-
-        // increase the arming counter to a maximum of 1 beyond the auto trim counter
-        if( arming_counter <= AUTO_TRIM_DELAY ) {
-            arming_counter++;
-        }
-
-        // arm the motors and configure for flight
-        if (arming_counter == ARM_DELAY && !motors.armed()) {
-            // reset arming counter if arming fail
-            if (!init_arm_motors(false)) {
-                arming_counter = 0;
-            }
-        }
-
-        // arm the motors and configure for flight
-        if (arming_counter == AUTO_TRIM_DELAY && motors.armed() && control_mode == STABILIZE) {
-            auto_trim_counter = 250;
-            // ensure auto-disarm doesn't trigger immediately
-            auto_disarming_counter = 0;
-        }
-
-    // full left
-    }else if (tmp < -4000) {
-        if (!mode_has_manual_throttle(control_mode) && !ap.land_complete) {
-            arming_counter = 0;
-            return;
-        }
-
-        // increase the counter to a maximum of 1 beyond the disarm delay
-        if( arming_counter <= DISARM_DELAY ) {
-            arming_counter++;
-        }
-
-        // disarm the motors
-        if (arming_counter == DISARM_DELAY && motors.armed()) {
-            init_disarm_motors();
-        }
-
-    // Yaw is centered so reset arming counter
-    }else{
-        arming_counter = 0;
+    if (input_cmd == PX4IO_P_CONTROL_INPUT_REQ_ARM && !motors.armed()) {
+        bool armSuccess = init_arm_motors(false);
+        publish_input_cmd_rsp(armSuccess);
+    }
+    else if (input_cmd == PX4IO_P_CONTROL_INPUT_REQ_DISARM && motors.armed()) {
+        init_disarm_motors();
+        publish_input_cmd_rsp(true);
     }
 }
+
 
 // auto_disarm_check - disarms the copter if it has been sitting on the ground in manual mode with throttle low for at least 15 seconds
 // called at 1hz
 void Copter::auto_disarm_check()
 {
-
     uint8_t disarm_delay;
 
     // exit immediately if we are already disarmed or throttle output is not zero,
@@ -157,8 +120,8 @@ bool Copter::init_arm_motors(bool arming_from_gcs)
         // Reset EKF altitude if home hasn't been set yet (we use EKF altitude as substitute for alt above home)
         ahrs.get_NavEKF().resetHeightDatum();
     } else if (ap.home_state == HOME_SET_NOT_LOCKED) {
-        // Reset home position if it has already been set before (but not locked)
-        set_home_to_current_location();
+        // Set and lock home position if it is unlocked
+        set_home_to_current_location_and_lock();
     }
     calc_distance_and_bearing();
 
@@ -298,6 +261,18 @@ bool Copter::pre_arm_checks(bool display_failure)
         }
         return false;
     }
+
+    // Check AHRS (EKF) health.  This will make sure we do not play
+    // the ready tone until the EKF is ready to fly.  Users complained
+    // about arming failure after ready tone was played.
+    //
+    if(!ahrs.healthy()) {
+        if (display_failure) {
+            gcs_send_text_P(SEVERITY_HIGH,PSTR("PreArm: AHRS not healthy"));
+        }
+        return false;
+    }
+
     // check Baro
     if ((g.arming_check == ARMING_CHECK_ALL) || (g.arming_check & ARMING_CHECK_BARO)) {
         // barometer health check
@@ -334,10 +309,34 @@ bool Copter::pre_arm_checks(bool display_failure)
 
         // check compass learning is on or offsets have been set
         if(!compass.configured()) {
-            if (display_failure) {
-                gcs_send_text_P(SEVERITY_HIGH,PSTR("PreArm: Compass not calibrated"));
+
+            // Offsets may have been inadvertently lost due to storage
+            // manager/fram issue we cannot find.  See if they can be
+            // restored from TPFC backups.
+            //
+            TpfcFloatVector v;
+            if (ioctl(tpfc_fd, TPFC_IOC_MAG_OFFSETS_GET, (unsigned long)&v) == 0)  {
+                Vector3f offsets(v.x, v.y, v.z);
+
+                if (!is_zero(offsets.length())) {
+                    
+                    //   printf("Restoring backup offsets: (%3.2f, %3.2f, %3.2f)\n",
+                    //          offsets.x, offsets.y, offsets.z);
+
+                    // Count restores in backup register
+                    (*(uint32_t *) STM32_BKP_DR10)++;
+
+                    compass.set_and_save_offsets(compass.get_primary(), offsets);
+                }
             }
-            return false;
+
+            // Recheck in case we restored the offsets above.
+            if(!compass.configured()) {
+                if (display_failure) {
+                    gcs_send_text_P(SEVERITY_HIGH,PSTR("PreArm: Compass not calibrated"));
+                }
+                return false;
+            }
         }
 
         // check for unreasonable compass offsets
@@ -381,9 +380,9 @@ bool Copter::pre_arm_checks(bool display_failure)
     }
 
     // check GPS
-    if (!pre_arm_gps_checks(display_failure)) {
-        return false;
-    }
+    // if (!pre_arm_gps_checks(display_failure)) {
+    //     return false;
+    // }
 
 #if AC_FENCE == ENABLED
     // check fence is initialised
@@ -464,6 +463,68 @@ bool Copter::pre_arm_checks(bool display_failure)
         }
 #endif
     }
+
+    // Check AHRS trim...
+    Vector3f trim = ahrs.get_trim();
+
+    if (is_zero(trim.length())) {
+        // Offsets may have been inadvertently lost due to storage
+        // manager/fram issue we cannot find.  See if they can be
+        // restored from TPFC backups.
+        //
+        TpfcFloatVector v;
+        if (ioctl(tpfc_fd, TPFC_IOC_TRIM_OFFSETS_GET, (unsigned long)&v) == 0)  {
+            trim.x = v.x;
+            trim.y = v.y;
+            trim.z = v.z;
+
+            // Count restores in backup register
+            (*(uint32_t *) STM32_BKP_DR10)++;
+
+            ahrs.set_trim(trim);
+            // printf("Trim: Restoring backup offsets: (%3.2f, %3.2f, %3.2f)\n",
+            //        v.x, v.y, v.z);
+
+        }
+    }
+
+    // Check accelerometer calibration offsets.
+    //
+    Vector3f accel_offsets = ins.get_accel_offsets();
+    
+    if (is_zero(accel_offsets.length())) {
+        // Offsets may have been inadvertently lost due to storage
+        // manager/fram issue we cannot find.  See if they can be
+        // restored from TPFC backups.
+        //
+        TpfcFloatVector offset, scale;
+        if (ioctl(tpfc_fd, TPFC_IOC_ACCEL_OFFSETS_GET, (unsigned long)&offset) == 0 &&
+            ioctl(tpfc_fd, TPFC_IOC_ACCEL_SCALE_GET, (unsigned long)&scale) == 0)  {
+            accel_offsets.x = offset.x;
+            accel_offsets.y = offset.y;
+            accel_offsets.z = offset.z;
+
+            ins.set_accel_offsets(accel_offsets);
+
+            // Count restores in backup register
+            (*(uint32_t *) STM32_BKP_DR10)++;
+
+            // printf("Accel: Restoring backup offsets: (%3.2f, %3.2f, %3.2f)\n",
+             //        offset.x, offset.y, offset.z);
+
+            Vector3f accel_scale;
+                
+            accel_scale.x = scale.x;
+            accel_scale.y = scale.y;
+            accel_scale.z = scale.z;
+
+            ins.set_accel_scale(accel_scale);
+
+            // printf("Accel: Restoring backup scale: (%3.2f, %3.2f, %3.2f)\n",
+            //         scale.x, scale.y, scale.z);
+        }
+    }
+
 #if CONFIG_HAL_BOARD != HAL_BOARD_VRBRAIN
 #ifndef CONFIG_ARCH_BOARD_PX4FMU_V1
     // check board voltage
@@ -547,9 +608,15 @@ void Copter::pre_arm_rc_checks()
     }
 
     // check if radio has been calibrated
-    if(!channel_throttle->radio_min.load() && !channel_throttle->radio_max.load()) {
-        return;
-    }
+    // DGS: would like to do this by clearning the ARMING_CHECK_RC bit
+    // in the arming_check mask but ALL is not the bitwise or of the
+    // individual parts.  Revisit later...
+    // if(!channel_throttle->radio_min.load() && !channel_throttle->radio_max.load()) {
+    //     printf("read throttle failed, throttle min: %d, max: %d\n",
+    //            channel_throttle->radio_min,
+    //            channel_throttle->radio_max);
+    //     return;
+    // }
 
     // check channels 1 & 2 have min <= 1300 and max >= 1700
     if (channel_roll->radio_min > 1300 || channel_roll->radio_max < 1700 || channel_pitch->radio_min > 1300 || channel_pitch->radio_max < 1700) {
@@ -598,7 +665,7 @@ bool Copter::pre_arm_gps_checks(bool display_failure)
 #if AC_FENCE == ENABLED
     // if circular fence is enabled we need GPS
     if ((fence.get_enabled_fences() & AC_FENCE_TYPE_CIRCLE) != 0) {
-        gps_required = true;
+        //        gps_required = true;
     }
 #endif
 
@@ -752,13 +819,15 @@ bool Copter::arm_checks(bool display_failure, bool arming_from_gcs)
         }
     }
 
+    // DGS-comment for now
     // check if safety switch has been pushed
-    if (hal.util->safety_switch_state() == AP_HAL::Util::SAFETY_DISARMED) {
-        if (display_failure) {
-            gcs_send_text_P(SEVERITY_HIGH,PSTR("Arm: Safety Switch"));
-        }
-        return false;
-    }
+    // if (hal.util->safety_switch_state() == AP_HAL::Util::SAFETY_DISARMED) {
+    //     if (display_failure) {
+    //         gcs_send_text_P(SEVERITY_HIGH,PSTR("Arm: Safety Switch"));
+    //     }
+    //     printf("%s(%d)\n", __FILE__, __LINE__);
+    //     return false;
+    // }
 
     // if we've gotten this far all is ok
     return true;
@@ -776,9 +845,6 @@ void Copter::init_disarm_motors()
     gcs_send_text_P(SEVERITY_HIGH, PSTR("DISARMING MOTORS"));
 #endif
 
-    // send disarm command to motors
-    motors.armed(false);
-
     // save compass offsets learned by the EKF
     Vector3f magOffsets;
     if (ahrs.use_compass() && ahrs.getMagOffsets(magOffsets)) {
@@ -794,11 +860,14 @@ void Copter::init_disarm_motors()
     set_land_complete(true);
     set_land_complete_maybe(true);
 
-    // reset the mission
-    mission.reset();
-
     // log disarm to the dataflash
     Log_Write_Event(DATA_DISARMED);
+
+    // send disarm command to motors
+    motors.armed(false);
+
+    // reset the mission
+    mission.reset();
 
     // suspend logging
     if (!(g.log_bitmask & MASK_LOG_WHEN_DISARMED)) {
@@ -838,8 +907,17 @@ void Copter::lost_vehicle_check()
         return;
     }
 
-    // ensure throttle is down, motors not armed, pitch and roll rc at max. Note: rc1=roll rc2=pitch
-    if (ap.throttle_zero && !motors.armed() && (channel_roll->control_in > 4000) && (channel_pitch->control_in > 4000)) {
+    int16_t pitch_in = channel_pitch->control_in;
+    int16_t roll_in  = channel_roll->control_in;
+    
+    // Two cases here:
+    // 1. user is requesting the lost vehicle tone by putting pitch
+    //    and roll at max.
+    // 2. Flight control is requesting due to lost radio transmission
+    //
+    // In either case, require the motors to be disarmed.
+    //
+    if ((((roll_in > 4000) && (pitch_in > 4000)) || sound_lost_vehicle_alarm) && !motors.armed()) {
         if (soundalarm_counter >= LOST_VEHICLE_DELAY) {
             if (AP_Notify::flags.vehicle_lost == false) {
                 AP_Notify::flags.vehicle_lost = true;

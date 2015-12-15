@@ -36,6 +36,8 @@ endif
 NUTTX_GIT_VERSION := $(shell cd $(NUTTX_SRC) && git rev-parse HEAD | cut -c1-8)
 PX4_GIT_VERSION   := $(shell cd $(PX4_ROOT) && git rev-parse HEAD | cut -c1-8)
 
+TRX_LOAD_NAME := TRX-FMU-V2
+
 EXTRAFLAGS += -DNUTTX_GIT_VERSION="\"$(NUTTX_GIT_VERSION)\""
 EXTRAFLAGS += -DPX4_GIT_VERSION="\"$(PX4_GIT_VERSION)\""
 EXTRAFLAGS += -DUAVCAN=1
@@ -99,6 +101,18 @@ px4-v2: $(BUILDROOT)/make.flags CHECK_MODULES $(PX4_ROOT)/Archives/px4fmu-v2.exp
 	$(v) $(SKETCHBOOK)/Tools/scripts/add_git_hashes.py $(HASHADDER_FLAGS) "$(SKETCH)-v2.px4" "$(SKETCH)-v2.px4"
 	$(v) echo "PX4 $(SKETCH) Firmware is in $(SKETCH)-v2.px4"
 
+trx-v2: $(BUILDROOT)/make.flags CHECK_MODULES $(PX4_ROOT)/Archives/px4fmu-v2.export $(SKETCHCPP) module_mk trxio-v2
+	$(RULEHDR)
+	$(v) rm -f $(PX4_ROOT)/makefiles/$(PX4_V2_CONFIG_FILE)
+	$(v) cp $(PX4_V2_CONFIG_FILE) $(PX4_ROOT)/makefiles/nuttx/
+	$(PX4_MAKE) px4fmu-v2_APM
+	$(v) /bin/rm -f $(TRX_LOAD_NAME).px4
+	$(v) cp $(PX4_ROOT)/Images/px4fmu-v2_APM.px4 $(TRX_LOAD_NAME).px4
+	$(v) /bin/rm -f $(TRX_LOAD_NAME).bin
+	$(v) cp $(PX4_ROOT)/Images/px4fmu-v2_APM.bin $(TRX_LOAD_NAME).bin
+	$(v) $(SKETCHBOOK)/Tools/scripts/add_git_hashes.py $(HASHADDER_FLAGS) "$(TRX_LOAD_NAME).px4" "$(TRX_LOAD_NAME).px4"
+	$(v) echo "TRX $(SKETCH) Firmware is in $(TRX_LOAD_NAME).bin"
+
 px4: px4-v1 px4-v2
 
 px4-clean: clean CHECK_MODULES px4-archives-clean px4-cleandep
@@ -151,6 +165,19 @@ px4-io-v2: $(PX4_ROOT)/Archives/px4io-v2.export
 
 px4-io: px4-io-v1 px4-io-v2
 
+trxio-v2: $(PX4_ROOT)/Archives/px4io-v2.export
+	$(v) make -C $(PX4_ROOT) px4io-v2_default
+	$(v) /bin/rm -f trxio-v2.bin
+	$(v) cp $(SKETCHBOOK)/AliasProFCU.bin trxio-v2.bin
+	$(v) mkdir -p $(MK_DIR)/PX4/ROMFS/px4io/
+	$(v) rm -f $(MK_DIR)/PX4/ROMFS/px4io/px4io.bin
+	$(v) cp trxio-v2.bin $(MK_DIR)/PX4/ROMFS/px4io/px4io.bin
+	$(v) mkdir -p $(MK_DIR)/PX4/ROMFS/bootloader/
+	$(v) rm -f $(MK_DIR)/PX4/ROMFS/bootloader/fmu_bl.bin
+	$(v) cp $(SKETCHBOOK)/mk/PX4/bootloader/px4fmuv2_bl.bin $(MK_DIR)/PX4/ROMFS/bootloader/fmu_bl.bin
+	$(v) echo "TRXIO-v2 Firmware is in px4io.bin"
+
+trx-io: trxio-v2
 
 $(PX4_ROOT)/Archives/px4fmu-v1.export:
 	$(v) $(PX4_MAKE_ARCHIVES) BOARDS="px4fmu-v1"

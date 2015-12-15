@@ -20,6 +20,8 @@
 #include <AP_Notify.h>
 #include <AP_GPS.h>
 
+#include <stdio.h>
+
 extern const AP_HAL::HAL& hal;
 
 // table of user settable parameters
@@ -125,7 +127,7 @@ void AP_GPS::init(DataFlash_Class *dataflash, const AP_SerialManager& serial_man
 }
 
 // baudrates to try to detect GPSes with
-const uint32_t AP_GPS::_baudrates[] PROGMEM = {4800U, 38400U, 115200U, 57600U, 9600U};
+const uint32_t AP_GPS::_baudrates[] PROGMEM = {4800U, 9600U, 38400U, 115200U, 57600U};
 
 // initialisation blobs to send to the GPS to try to get it into the
 // right mode

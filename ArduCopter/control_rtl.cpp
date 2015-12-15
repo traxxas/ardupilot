@@ -2,6 +2,11 @@
 
 #include "Copter.h"
 
+extern uint32_t tpfc_rtl_brake;
+extern uint32_t tpfc_rtl_brake_duration_ms;
+extern uint32_t tpfc_rtl_brake_velocity_cms;
+
+
 /*
  * control_rtl.pde - init and run calls for RTL flight mode
  *
@@ -13,12 +18,19 @@
 bool Copter::rtl_init(bool ignore_checks)
 {
     if (position_ok() || ignore_checks) {
-        rtl_climb_start();
+        if (tpfc_rtl_brake) {
+            rtl_brake_start();
+        }
+        else {
+            rtl_climb_start();
+        }
         return true;
     }else{
         return false;
     }
 }
+
+
 
 // rtl_run - runs the return-to-launch controller
 // should be called at 100hz or more
@@ -27,6 +39,9 @@ void Copter::rtl_run()
     // check if we need to move to next state
     if (rtl_state_complete) {
         switch (rtl_state) {
+        case RTL_Brake:
+            rtl_climb_start();
+            break;
         case RTL_InitialClimb:
             rtl_return_start();
             break;
@@ -44,13 +59,19 @@ void Copter::rtl_run()
             // do nothing
             break;
         case RTL_Land:
-            // do nothing - rtl_land_run will take care of disarming motors
+            // Done landing, turn off the landing tone.
+            AP_Notify::flags.auto_land = 0;
+            // rtl_land_run will take care of disarming motors
             break;
         }
     }
 
     // call the correct run function
     switch (rtl_state) {
+
+    case RTL_Brake:
+        rtl_brake_run();
+        break;
 
     case RTL_InitialClimb:
         rtl_climb_return_run();
@@ -73,6 +94,33 @@ void Copter::rtl_run()
         break;
     }
 }
+
+
+// rtl_brake_start - initialize brake before initial climb
+void Copter::rtl_brake_start()
+{
+    rtl_state = RTL_Brake;
+    rtl_state_complete = false;
+    rtl_brake_start_time_ms = millis();
+
+    // Initialize air brake
+    if (!brake_init(false)) {
+        // We're done...
+        rtl_state_complete = true;
+    }
+}
+
+void Copter::rtl_brake_run()
+{
+    // Run the brake controller
+    brake_run();
+
+    if ((millis() - rtl_brake_start_time_ms) > tpfc_rtl_brake_duration_ms ||
+        inertial_nav.get_velocity().length() < tpfc_rtl_brake_velocity_cms)  {
+        rtl_state_complete = true;
+    }
+}
+
 
 // rtl_climb_start - initialise climb to RTL altitude
 void Copter::rtl_climb_start()
@@ -142,7 +190,7 @@ void Copter::rtl_climb_return_run()
     }
 
     // process pilot's yaw input
-    float target_yaw_rate = 0;
+    float target_yaw_rate   = 0;
     if (!failsafe.radio) {
         // get pilot's desired yaw rate
         target_yaw_rate = get_pilot_desired_yaw_rate(channel_yaw->control_in);
@@ -305,6 +353,9 @@ void Copter::rtl_land_start()
     rtl_state = RTL_Land;
     rtl_state_complete = false;
 
+    // Sound the landing tone
+    AP_Notify::flags.auto_land = 1;
+    
     // Set wp navigation target to above home
     wp_nav.init_loiter_target(wp_nav.get_wp_destination());
 

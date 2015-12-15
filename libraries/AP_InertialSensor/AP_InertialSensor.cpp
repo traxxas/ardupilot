@@ -755,14 +755,15 @@ bool AP_InertialSensor::accel_calibrated_ok_all() const
     // check each accelerometer has offsets saved
     for (uint8_t i=0; i<get_accel_count(); i++) {
         // exactly 0.0 offset is extremely unlikely
-        if (_accel_offset[i].get().is_zero()) {
-            return false;
-        }
+        // if (_accel_offset[i].get().is_zero()) {
+        //     return false;
+        // }
         // exactly 1.0 scaling is extremely unlikely
-        const Vector3f &scaling = _accel_scale[i].get();
-        if (is_equal(scaling.x,1.0f) && is_equal(scaling.y,1.0f) && is_equal(scaling.z,1.0f)) {
-            return false;
-        }
+        // const Vector3f &scaling = _accel_scale[i].get();
+        // if (is_equal(scaling.x,1.0f) && is_equal(scaling.y,1.0f) && is_equal(scaling.z,1.0f)) {
+        //     return false;
+        // }
+
         // zero scaling also indicates not calibrated
         if (_accel_scale[i].get().is_zero()) {
             return false;
@@ -1416,6 +1417,42 @@ void AP_InertialSensor::set_delta_angle(uint8_t instance, const Vector3f &deltaa
         _delta_angle[instance] = deltaa;
     }
 }
+
+/*
+  DGS: Temporary -- for emergency restore
+ */
+void AP_InertialSensor::set_accel_offsets(uint8_t instance, const Vector3f &accel_offsets) {
+    if (instance < INS_MAX_INSTANCES) {
+        _accel_offset[instance] = accel_offsets;
+        _accel_offset[instance].save();
+    }
+}
+
+/*
+  DGS: Temporary -- for emergency restore
+*/
+void AP_InertialSensor::set_accel_offsets(const Vector3f &accel_offsets) {
+    set_accel_offsets(_primary_accel, accel_offsets);
+}
+
+/*
+  DGS: Temporary -- for emergency restore
+ */
+void AP_InertialSensor::set_accel_scale(uint8_t instance, const Vector3f &accel_scale) {
+    if (instance < INS_MAX_INSTANCES) {
+        _accel_scale[instance] = accel_scale;
+        _accel_scale[instance].save();
+    }
+}
+
+/*
+  DGS: Temporary -- for emergency restore
+*/
+void AP_InertialSensor::set_accel_scale(const Vector3f &accel_scale) {
+    set_accel_scale(_primary_accel, accel_scale);
+}
+    
+
 
 #if INS_VIBRATION_CHECK
 // calculate vibration levels and check for accelerometer clipping (called by a backends)

@@ -328,6 +328,7 @@ struct PACKED log_EKF1 {
     float posN;
     float posE;
     float posD;
+    uint8_t posOK;
     int16_t gyrX;
     int16_t gyrY;
     int16_t gyrZ;
@@ -556,6 +557,33 @@ struct PACKED log_GPS_RAW {
     uint8_t lli;
 };
 
+struct PACKED log_GPS_RAWH {
+    LOG_PACKET_HEADER;
+    uint64_t time_us;
+    double rcvTow;
+    uint16_t week;
+    int8_t leapS;
+    uint8_t numMeas;
+    uint8_t recStat;
+};
+
+struct PACKED log_GPS_RAWS {
+    LOG_PACKET_HEADER;
+    uint64_t time_us;
+    double prMes;
+    double cpMes;
+    float doMes;
+    uint8_t gnssId;
+    uint8_t svId;
+    uint8_t freqId;
+    uint16_t locktime;
+    uint8_t cno;
+    uint8_t prStdev;
+    uint8_t cpStdev;
+    uint8_t doStdev;
+    uint8_t trkStat;
+};
+
 struct PACKED log_Esc {
     LOG_PACKET_HEADER;
     uint64_t time_us;     
@@ -619,7 +647,7 @@ Format characters in the format string for binary log messages
     { LOG_PARAMETER_MSG, sizeof(log_Parameter), \
       "PARM", "QNf",        "TimeUS,Name,Value" },    \
     { LOG_GPS_MSG, sizeof(log_GPS), \
-      "GPS",  "QBIHBcLLeeEef", "TimeUS,Status,GMS,GWk,NSats,HDop,Lat,Lng,RAlt,Alt,Spd,GCrs,VZ" }, \
+      "GPS",  "QBIHBcLLeeEef", "TimeUS,Status,GMS,GWk,NSat,HDop,Lat,Lng,RAlt,Alt,Spd,GCrs,VZ" }, \
     { LOG_IMU_MSG, sizeof(log_IMU), \
       "IMU",  "QffffffIIfBB",     "TimeUS,GyrX,GyrY,GyrZ,AccX,AccY,AccZ,ErrG,ErrA,Temp,GyHlt,AcHlt" }, \
     { LOG_MESSAGE_MSG, sizeof(log_Message), \
@@ -664,13 +692,13 @@ Format characters in the format string for binary log messages
     { LOG_SIMSTATE_MSG, sizeof(log_AHRS), \
       "SIM","QccCfLL","TimeUS,Roll,Pitch,Yaw,Alt,Lat,Lng" }, \
     { LOG_EKF1_MSG, sizeof(log_EKF1), \
-      "EKF1","QccCffffffccc","TimeUS,Roll,Pitch,Yaw,VN,VE,VD,PN,PE,PD,GX,GY,GZ" }, \
+      "EKF1","QccCffffffBccc","TimeUS,Roll,Pitch,Yaw,VN,VE,VD,PN,PE,PD,POK,GX,GY,GZ" }, \
     { LOG_EKF2_MSG, sizeof(log_EKF2), \
       "EKF2","Qbbbcchhhhhh","TimeUS,Ratio,AZ1bias,AZ2bias,VWN,VWE,MN,ME,MD,MX,MY,MZ" }, \
     { LOG_EKF3_MSG, sizeof(log_EKF3), \
       "EKF3","Qcccccchhhc","TimeUS,IVN,IVE,IVD,IPN,IPE,IPD,IMX,IMY,IMZ,IVT" }, \
     { LOG_EKF4_MSG, sizeof(log_EKF4), \
-      "EKF4","QcccccccbbBBH","TimeUS,SV,SP,SH,SMX,SMY,SMZ,SVT,OFN,EFE,FS,TS,SS" }, \
+      "EKF4","QcccccccbbBBH","TimeUS,SV,SP,SH,SMX,SMY,SMZ,SVT,OFN,OFE,FS,TS,SS" }, \
     { LOG_TERRAIN_MSG, sizeof(log_TERRAIN), \
       "TERR","QBLLHffHH","TimeUS,Status,Lat,Lng,Spacing,TerrH,CHeight,Pending,Loaded" }, \
     { LOG_UBX1_MSG, sizeof(log_Ubx1), \
@@ -681,6 +709,10 @@ Format characters in the format string for binary log messages
       "UBX3", "QBfff", "TimeUS,Instance,hAcc,vAcc,sAcc" }, \
     { LOG_GPS_RAW_MSG, sizeof(log_GPS_RAW), \
       "GRAW", "QIHBBddfBbB", "TimeUS,WkMS,Week,numSV,sv,cpMes,prMes,doMes,mesQI,cno,lli" }, \
+    { LOG_GPS_RAWH_MSG, sizeof(log_GPS_RAWH), \
+      "GRXH", "QdHbBB", "TimeUS,rcvTime,week,leapS,numMeas,recStat" }, \
+    { LOG_GPS_RAWS_MSG, sizeof(log_GPS_RAWS), \
+      "GRXS", "QddfBBBHBBBBB", "TimeUS,prMes,cpMes,doMes,gnss,sv,freq,lock,cno,prD,cpD,doD,trk" }, \
     { LOG_ESC1_MSG, sizeof(log_Esc), \
       "ESC1",  "Qcccc", "TimeUS,RPM,Volt,Curr,Temp" }, \
     { LOG_ESC2_MSG, sizeof(log_Esc), \
@@ -790,6 +822,8 @@ enum LogMessages {
     LOG_COMPASS3_MSG,
     LOG_MODE_MSG,
     LOG_GPS_RAW_MSG,
+    LOG_GPS_RAWH_MSG,
+    LOG_GPS_RAWS_MSG,
     LOG_ACC1_MSG,
     LOG_ACC2_MSG,
     LOG_ACC3_MSG,
@@ -805,7 +839,10 @@ enum LogMessages {
     LOG_VIBE_MSG,
     LOG_IMUDT_MSG,
     LOG_IMUDT2_MSG,
-    LOG_IMUDT3_MSG
+    LOG_IMUDT3_MSG,
+    LOG_CONTROL_MSG,
+    LOG_LOITER_TUNE_MSG,
+    LOG_FCU_MSG
 };
 
 // message types 200 to 210 reversed for GPS driver use

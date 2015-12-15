@@ -89,7 +89,7 @@ const AP_Param::Info Copter::var_info[] PROGMEM = {
     // @User: Standard
     // @Range 0.0 500.0
     // @Increment: 10
-    GSCALAR(takeoff_trigger_dz, "PILOT_TKOFF_DZ", THR_DZ_DEFAULT),
+    GSCALAR(takeoff_trigger_dz, "PILOT_TKOFF_DZ", PILOT_TKOFF_DZ_DEFAULT),
 
     // @Param: PILOT_THR_BHV
     // @DisplayName: Throttle stick behavior
@@ -214,7 +214,7 @@ const AP_Param::Info Copter::var_info[] PROGMEM = {
     // @Param: WP_YAW_BEHAVIOR
     // @DisplayName: Yaw behaviour during missions
     // @Description: Determines how the autopilot controls the yaw during missions and RTL
-    // @Values: 0:Never change yaw, 1:Face next waypoint, 2:Face next waypoint except RTL, 3:Face along GPS course
+    // @Values: 0:Never change yaw, 1:Face next waypoint, 2:Face next waypoint except RTL, 3:Face along GPS course, 4:Face away from next waypoint
     // @User: Standard
     GSCALAR(wp_yaw_behavior,  "WP_YAW_BEHAVIOR",    WP_YAW_BEHAVIOR_DEFAULT),
 
@@ -349,7 +349,7 @@ const AP_Param::Info Copter::var_info[] PROGMEM = {
     // @DisplayName: Log bitmask
     // @Description: 4 byte bitmap of log types to enable
     // @Values: 830:Default,894:Default+RCIN,958:Default+IMU,1854:Default+Motors,-6146:NearlyAll-AC315,45054:NearlyAll,131070:All+DisarmedLogging,131071:All+FastATT,262142:All+MotBatt,393214:All+FastIMU,397310:All+FastIMU+PID,655358:All+FullIMU,0:Disabled
-    // @Bitmask: 0:ATTITUDE_FAST,1:ATTITUDE_MED,2:GPS,3:PM,4:CTUN,5:NTUN,6:RCIN,7:IMU,8:CMD,9:CURRENT,10:RCOUT,11:OPTFLOW,12:PID,13:COMPASS,14:INAV,15:CAMERA,16:WHEN_DISARMED,17:MOTBATT,18:IMU_FAST,19:IMU_RAW
+    // @Bitmask: 0:ATTITUDE_FAST,1:ATTITUDE_MED,2:GPS,3:PM,4:CTUN,5:NTUN,6:RCIN,7:IMU,8:CMD,9:CURRENT,10:RCOUT,11:OPTFLOW,12:PID,13:COMPASS,14:INAV,15:CAMERA,16:WHEN_DISARMED,17:MOTBATT,18:IMU_FAST,19:IMU_RAW,20:FLT CTRL,21:FCU Counters
     // @User: Standard
     GSCALAR(log_bitmask,    "LOG_BITMASK",          DEFAULT_LOG_BITMASK),
 
@@ -1051,6 +1051,7 @@ const AP_Param::Info Copter::var_info[] PROGMEM = {
     // @User: Standard
     GSCALAR(autotune_aggressiveness, "AUTOTUNE_AGGR", 0.1f),
 
+
     AP_VAREND
 };
 
@@ -1096,6 +1097,8 @@ void Copter::load_parameters(void)
 
         // erase all parameters
         cliSerial->printf_P(PSTR("Firmware change: erasing EEPROM...\n"));
+        //        printf("**** format version mismatch, read %d, expect %d. erase FRAM\n",
+        //               g.format_version, Parameters::k_format_version);
         AP_Param::erase_all();
 
         // save the current format version
@@ -1107,5 +1110,5 @@ void Copter::load_parameters(void)
         AP_Param::load_all();
         AP_Param::convert_old_parameters(&conversion_table[0], sizeof(conversion_table)/sizeof(conversion_table[0]));
         cliSerial->printf_P(PSTR("load_all took %luus\n"), micros() - before);
-    }
+   }
 }

@@ -22,7 +22,7 @@
 #define AC_ATTITUDE_ACCEL_Y_CONTROLLER_MIN              9000.0f   // minimum body-frame acceleration limit for the stability controller (for yaw axis)
 #define AC_ATTITUDE_ACCEL_Y_CONTROLLER_MAX              36000.0f  // maximum body-frame acceleration limit for the stability controller (for yaw axis)
 #define AC_ATTITUDE_CONTROL_SLEW_YAW_DEFAULT            1000      // constraint on yaw angle error in degrees.  This should lead to maximum turn rate of 10deg/sed * Stab Rate P so by default will be 45deg/sec.
-#define AC_ATTITUDE_CONTROL_ACCEL_RP_MAX_DEFAULT        110000.0f // default maximum acceleration for roll/pitch axis in centi-degrees/sec/sec
+#define AC_ATTITUDE_CONTROL_ACCEL_RP_MAX_DEFAULT        0.0f // default maximum acceleration for roll/pitch axis in centi-degrees/sec/sec
 #define AC_ATTITUDE_CONTROL_ACCEL_Y_MAX_DEFAULT         27000.0f  // default maximum acceleration for yaw axis in centi-degrees/sec/sec
 
 #define AC_ATTITUDE_RATE_CONTROLLER_TIMEOUT             1.0f    // body-frame rate controller timeout in seconds

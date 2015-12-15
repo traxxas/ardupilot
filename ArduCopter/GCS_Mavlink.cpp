@@ -981,6 +981,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 
     case MAVLINK_MSG_ID_SET_MODE:       // MAV ID: 11
     {
+        copter.Log_Write_Data(201, 2);
         handle_set_mode(msg, FUNCTOR_BIND(&copter, &Copter::set_mode, bool, uint8_t));
         break;
     }
@@ -1143,6 +1144,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
             break;
 
         case MAV_CMD_NAV_RETURN_TO_LAUNCH:
+            copter.Log_Write_Data(200, 12);
             if (copter.set_mode(RTL)) {
                 result = MAV_RESULT_ACCEPTED;
             }
@@ -1267,6 +1269,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
                 if(copter.ins.calibrate_trim(trim_roll, trim_pitch)) {
                     // reset ahrs's trim to suggested values from calibration routine
                     copter.ahrs.set_trim(Vector3f(trim_roll, trim_pitch, 0));
+                    copter.set_new_calibration();
                     result = MAV_RESULT_ACCEPTED;
                 } else {
                     result = MAV_RESULT_FAILED;
@@ -1281,6 +1284,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
             if (is_equal(packet.param1,2.0f)) {
                 // save first compass's offsets
                 copter.compass.set_and_save_offsets(0, packet.param2, packet.param3, packet.param4);
+                copter.set_new_calibration();
                 result = MAV_RESULT_ACCEPTED;
             }
             if (is_equal(packet.param1,5.0f)) {

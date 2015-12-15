@@ -19,6 +19,7 @@
 #include <GCS_MAVLink.h>
 #include <errno.h>
 #include "GPIO.h"
+#include <config.h>    //DGS-for BOARD_VOLTAGE_MAX
 
 #define ANLOGIN_DEBUGGING 0
 
@@ -273,7 +274,10 @@ void PX4AnalogIn::_timer_tick(void)
             if (buf_adc[i].am_channel == 4) {
                 // record the Vcc value for later use in
                 // voltage_average_ratiometric()
-                _board_voltage = buf_adc[i].am_data * 6.6f / 4096;
+
+                // DGS-TRX board will always return max for now
+                //                _board_voltage = buf_adc[i].am_data * 6.6f / 4096;
+                _board_voltage = BOARD_VOLTAGE_MAX;
             }
 #endif
         }

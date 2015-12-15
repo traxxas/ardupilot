@@ -269,7 +269,7 @@ public:
 
     static const struct AP_Param::GroupInfo var_info[];
 
-private:
+    //private:
     const AP_AHRS *_ahrs;
     AP_Baro &_baro;
     const RangeFinder &_rng;

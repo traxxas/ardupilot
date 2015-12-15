@@ -14,8 +14,6 @@
 #include <AP_Param.h>
 #include <AP_Vehicle.h>
 
-#include <stdio.h>
-
 /*
   parameter defaults for different types of vehicle. The
   APM_BUILD_DIRECTORY is taken from the main vehicle directory name
@@ -39,7 +37,7 @@
 #define POS_GATE_DEFAULT        10
 #define HGT_GATE_DEFAULT        10
 #define MAG_GATE_DEFAULT        3
-#define MAG_CAL_DEFAULT         1
+#define MAG_CAL_DEFAULT         2
 #define GLITCH_ACCEL_DEFAULT    100
 #define GLITCH_RADIUS_DEFAULT   25
 #define FLOW_MEAS_DELAY         10
@@ -2156,7 +2154,7 @@ void NavEKF::FuseVelPosNED()
             fuseData[0] = true;
             fuseData[1] = true;
         }
-
+    
         // fuse measurements sequentially
         for (obsIndex=0; obsIndex<=5; obsIndex++) {
             if (fuseData[obsIndex]) {
@@ -2237,7 +2235,7 @@ void NavEKF::FuseVelPosNED()
                 if (obsIndex == 5){
                     // Calculate height measurement innovations using single IMU states
                     float hgtInnov1 = statesAtHgtTime.posD1 - observation[obsIndex];
-                    float hgtInnov2 = statesAtHgtTime.posD2 - observation[obsIndex];
+                    float hgtInnov2 = statesAtHgtTime.posD2 - observation[obsIndex]; 
 
                     if (vehicleArmed) {
                         // Correct single IMU prediction states using height measurement, limiting rate of change of bias to 0.005 m/s3
@@ -4188,7 +4186,7 @@ void NavEKF::readGpsData()
 
         // Monitor quality of the GPS velocity data for alignment
         goodToAlign = calcGpsGoodToAlign();
-
+        
         // read latitutde and longitude from GPS and convert to local NE position relative to the stored origin
         // If we don't have an origin, then set it to the current GPS coordinates
         const struct Location &gpsloc = _ahrs->get_gps().location();

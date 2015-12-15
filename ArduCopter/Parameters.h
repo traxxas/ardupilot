@@ -494,7 +494,7 @@ public:
 
     // Autotune
     AP_Int8                 autotune_axis_bitmask;
-    AP_Float                autotune_aggressiveness;
+    AP_Float            autotune_aggressiveness;
 
     // Note: keep initializers here in the same order as they are declared
     // above.

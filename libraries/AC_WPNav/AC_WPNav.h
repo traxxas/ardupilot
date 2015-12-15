@@ -13,13 +13,13 @@
 #define WPNAV_ACCELERATION              100.0f      // defines the default velocity vs distant curve.  maximum acceleration in cm/s/s that position controller asks for from acceleration controller
 #define WPNAV_ACCELERATION_MIN           50.0f      // minimum acceleration in cm/s/s - used for sanity checking _wp_accel parameter
 
-#define WPNAV_LOITER_SPEED              500.0f      // default loiter speed in cm/s
-#define WPNAV_LOITER_SPEED_MIN          100.0f      // minimum loiter speed in cm/s
-#define WPNAV_LOITER_ACCEL              250.0f      // default acceleration in loiter mode
-#define WPNAV_LOITER_ACCEL_MIN           25.0f      // minimum acceleration in loiter mode
-#define WPNAV_LOITER_JERK_MAX_DEFAULT  1000.0f      // maximum jerk in cm/s/s/s in loiter mode
+#define WPNAV_LOITER_SPEED              900.0f      // default loiter speed in cm/s
+#define WPNAV_LOITER_SPEED_MIN           25.0f      // minimum loiter speed in cm/s
+#define WPNAV_LOITER_ACCEL              550.0f      // default acceleration in loiter mode
+#define WPNAV_LOITER_ACCEL_MIN          120.0f      // minimum acceleration in loiter mode
+#define WPNAV_LOITER_JERK_MAX_DEFAULT   900.0f      // maximum jerk in cm/s/s/s in loiter mode
 
-#define WPNAV_WP_SPEED                  500.0f      // default horizontal speed betwen waypoints in cm/s
+#define WPNAV_WP_SPEED                  900.0f      // default horizontal speed betwen waypoints in cm/s
 #define WPNAV_WP_SPEED_MIN              100.0f      // minimum horizontal speed between waypoints in cm/s
 #define WPNAV_WP_TRACK_SPEED_MIN         50.0f      // minimum speed along track of the target point the vehicle is chasing in cm/s (used as target slows down before reaching destination)
 #define WPNAV_WP_RADIUS                 200.0f      // default waypoint radius in cm

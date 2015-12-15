@@ -388,6 +388,11 @@
  # define PILOT_TKOFF_ALT_DEFAULT           0     // default final alt above home for pilot initiated takeoff
 #endif
 
+#ifndef PILOT_TKOFF_DZ_DEFAULT
+# define PILOT_TKOFF_DZ_DEFAULT THR_DZ_DEFAULT    // Deadzone above and below mid throttle used in auto-takeoff
+#endif
+
+
 
 //////////////////////////////////////////////////////////////////////////////
 // Landing

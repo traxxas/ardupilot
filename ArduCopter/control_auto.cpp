@@ -491,6 +491,14 @@ uint8_t Copter::get_default_auto_yaw_mode(bool rtl)
             return AUTO_YAW_LOOK_AHEAD;
             break;
 
+        case WP_YAW_BEHAVIOR_LOOK_AT_NEXT_WP_RTL_LOOK_AWAY:
+            if (rtl) {
+                return AUTO_YAW_AWAY_FROM_NEXT_WP;
+            }else{
+                return AUTO_YAW_LOOK_AT_NEXT_WP;
+            }
+            break;
+
         case WP_YAW_BEHAVIOR_LOOK_AT_NEXT_WP:
         default:
             return AUTO_YAW_LOOK_AT_NEXT_WP;
@@ -511,6 +519,7 @@ void Copter::set_auto_yaw_mode(uint8_t yaw_mode)
     switch (auto_yaw_mode) {
 
     case AUTO_YAW_LOOK_AT_NEXT_WP:
+    case AUTO_YAW_AWAY_FROM_NEXT_WP:
         // wpnav will initialise heading when wpnav's set_destination method is called
         break;
 
@@ -629,6 +638,10 @@ float Copter::get_auto_heading(void)
     case AUTO_YAW_RESETTOARMEDYAW:
         // changes yaw to be same as when quad was armed
         return initial_armed_bearing;
+        break;
+
+    case AUTO_YAW_AWAY_FROM_NEXT_WP:
+        return wrap_360_cd_float(wp_nav.get_yaw() + 18000);
         break;
 
     case AUTO_YAW_LOOK_AT_NEXT_WP:

@@ -79,7 +79,13 @@ void Copter::althold_run()
 
         // initiate take-off
         if (!takeoff_state.running) {
-            takeoff_timer_start(constrain_float(g.pilot_takeoff_alt,0.0f,1000.0f));
+            float takeoff_alt = g.pilot_takeoff_alt;
+            if (!position_ok()) {
+                // No GPS, assume indoors, restrict alt to 2m
+                //
+                takeoff_alt = min(g.pilot_takeoff_alt, 200);
+            }
+            takeoff_timer_start(constrain_float(takeoff_alt,0.0f,1000.0f));
             // indicate we are taking off
             set_land_complete(false);
             // clear i terms

@@ -21,6 +21,7 @@ enum autopilot_yaw_mode {
     AUTO_YAW_LOOK_AT_HEADING =  3,  // point towards a particular angle (not pilot input accepted)
     AUTO_YAW_LOOK_AHEAD =       4,  // point in the direction the copter is moving
     AUTO_YAW_RESETTOARMEDYAW =  5,  // point towards heading at time motors were armed
+    AUTO_YAW_AWAY_FROM_NEXT_WP =  6,  // point nose away from next waypoint
 };
 
 // Ch6... Ch12 aux switch control
@@ -100,6 +101,7 @@ enum autopilot_modes {
     LOITER =        5,  // automatic horizontal acceleration with automatic throttle
     RTL =           6,  // automatic return to launching point
     CIRCLE =        7,  // automatic circular flight with automatic throttle
+    LAND_NO_GPS =   8,  // auto land with x-y position controlled by pilot
     LAND =          9,  // automatic landing with horizontal position control
     OF_LOITER =    10,  // deprecated
     DRIFT =        11,  // semi-automous position, yaw and throttle control
@@ -171,6 +173,7 @@ enum tuning_func {
 #define WP_YAW_BEHAVIOR_LOOK_AT_NEXT_WP               1   // auto pilot will face next waypoint or home during rtl
 #define WP_YAW_BEHAVIOR_LOOK_AT_NEXT_WP_EXCEPT_RTL    2   // auto pilot will face next waypoint except when doing RTL at which time it will stay in it's last
 #define WP_YAW_BEHAVIOR_LOOK_AHEAD                    3   // auto pilot will look ahead during missions and rtl (primarily meant for traditional helicotpers)
+#define WP_YAW_BEHAVIOR_LOOK_AT_NEXT_WP_RTL_LOOK_AWAY 4   // auto pilot will face next waypoint except when doing RTL at which time it nose out
 
 // Auto modes
 enum AutoMode {
@@ -195,6 +198,7 @@ enum GuidedMode {
 
 // RTL states
 enum RTLState {
+    RTL_Brake,
     RTL_InitialClimb,
     RTL_ReturnHome,
     RTL_LoiterAtHome,
@@ -208,6 +212,14 @@ enum AltHoldModeState {
     AltHold_Takeoff,
     AltHold_Flying,
     AltHold_Landed
+};
+
+// Loiter states
+enum LoiterModeState {
+    Loiter_Disarmed,
+    Loiter_Takeoff,
+    Loiter_Flying,
+    Loiter_Landed
 };
 
 // Flip states
@@ -269,6 +281,9 @@ enum FlipState {
 #define MASK_LOG_MOTBATT                (1UL<<17)
 #define MASK_LOG_IMU_FAST               (1UL<<18)
 #define MASK_LOG_IMU_RAW                (1UL<<19)
+#define MASK_LOG_CONTROL                (1UL<<20)
+#define MASK_LOG_FCU                    (1UL<<21)
+#define MASK_LOG_FCU_FAST               (1UL<<22)
 #define MASK_LOG_ANY                    0xFFFF
 
 // DATA - event logging
@@ -323,6 +338,11 @@ enum FlipState {
 #define DATA_MOTORS_INTERLOCK_ENABLED       57
 #define DATA_ROTOR_RUNUP_COMPLETE           58  // Heli only
 #define DATA_ROTOR_SPEED_BELOW_CRITICAL     59  // Heli only
+// DGS: Note - 100 - 120 reserved for TPFC
+
+#define DATA_TAKEOFF_STATE                  60  // DGS - temporary
+#define DATA_ROLL_DISCREPANCY               61  // DGS - temporary
+#define DATA_PITCH_DISCREPANCY              62  // DGS - temporary
 
 // Centi-degrees to radians
 #define DEGX100 5729.57795f

@@ -310,12 +310,16 @@ void Copter::startup_ground(bool force_gyro_cal)
 bool Copter::position_ok()
 {
     // return false if ekf failsafe has triggered
-    if (failsafe.ekf) {
+    if (failsafe.ekf ) {
         return false;
     }
 
+    if (!gps_monitor_ok) {
+        return false;
+    }
+        
     // check ekf position estimate
-    return ekf_position_ok();
+    return ((gps.status() >= AP_GPS::GPS_OK_FIX_3D) && ekf_position_ok());
 }
 
 // ekf_position_ok - returns true if the ekf claims it's horizontal absolute position estimate is ok and home position is set

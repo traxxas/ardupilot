@@ -65,6 +65,11 @@ const ToneAlarm_PX4::Tone ToneAlarm_PX4::_tones[] {
     { "MBNT255>B#8B#8B#8B#8B#8B#8B#8B#8B#8B#8B#8B#8B#8B#8B#8B#8", true },
 };
 
+// Alternative land warning....5 beeps, forklift backup or could do continuous.
+// 	"MFT32L8<GP10GP10GP10GP10GP10"
+
+
+
 bool ToneAlarm_PX4::init()
 {
     // open the tone alarm device
@@ -241,6 +246,15 @@ void ToneAlarm_PX4::update()
         }
     }
 
+    // Land warning tone
+    if (flags.auto_land != AP_Notify::flags.auto_land) {
+        flags.auto_land = AP_Notify::flags.auto_land;
+        if (flags.auto_land) {
+	    play_tone(AP_NOTIFY_PX4_TONE_LOUD_LAND_WARNING_CTS);
+        } else {
+            stop_cont_tone();
+        }
+    }
 }
 
 #endif // CONFIG_HAL_BOARD == HAL_BOARD_PX4

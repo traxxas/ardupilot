@@ -42,6 +42,8 @@ void Copter::read_control_switch()
     bool failsafe_disengaged = !failsafe.radio && failsafe.radio_counter == 0;
 
     if (control_switch_changed && sufficient_time_elapsed && failsafe_disengaged) {
+        
+        Log_Write_Data(201, 1);
         // set flight mode and simple mode setting
         if (set_mode(flight_modes[switch_position])) {
             // play a tone
@@ -280,6 +282,7 @@ void Copter::do_aux_switch_function(int8_t ch_function, uint8_t ch_flag)
         case AUXSW_RTL:
             if (ch_flag == AUX_SWITCH_HIGH) {
                 // engage RTL (if not possible we remain in current flight mode)
+                Log_Write_Data(200, 11);
                 set_mode(RTL);
             }else{
                 // return to flight mode switch's flight mode if we are currently in RTL

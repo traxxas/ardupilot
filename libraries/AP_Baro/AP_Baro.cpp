@@ -101,15 +101,15 @@ void AP_Baro::calibrate()
             }
             hal.scheduler->delay(10);
         } while (!healthy());
-        hal.scheduler->delay(100);
+        hal.scheduler->delay(90);
     }
 
-    // now average over 5 values for the ground pressure and
+    // now average over 10 values for the ground pressure and
     // temperature settings
     float sum_pressure[BARO_MAX_INSTANCES] = {0};
     float sum_temperature[BARO_MAX_INSTANCES] = {0};
     uint8_t count[BARO_MAX_INSTANCES] = {0};
-    const uint8_t num_samples = 5;
+    const uint8_t num_samples = 10;
 
     for (uint8_t c = 0; c < num_samples; c++) {
         uint32_t tstart = hal.scheduler->millis();

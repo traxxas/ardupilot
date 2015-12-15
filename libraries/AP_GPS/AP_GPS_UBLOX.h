@@ -38,11 +38,13 @@
  * modules are configured with all ubx binary messages off, which
  * would mean we would never detect it.
  */
-#define UBLOX_SET_BINARY "\265\142\006\001\003\000\001\006\001\022\117$PUBX,41,1,0003,0001,38400,0*26\r\n"
+#define UBLOX_SET_BINARY "\265\142\006\001\003\000\001\006\001\022\117\265\142\006\043\050\000\000\000\114\146\000\000\000\000\000\000\003\026\005\000\000\000\000\001\334\006\000\000\000\000\000\000\000\001\000\000\144\000\000\000\000\000\000\000\000\000\151\125$PUBX,41,1,0003,0001,38400,0*26\r\n"
+
 
 #if HAL_CPU_CLASS >= HAL_CPU_CLASS_75
 #define UBLOX_RXM_RAW_LOGGING 1
-#define UBLOX_MAX_RXM_RAW_SATS 16
+#define UBLOX_MAX_RXM_RAW_SATS 22
+#define UBLOX_MAX_RXM_RAWX_SATS 32
 #else
 #define UBLOX_RXM_RAW_LOGGING 0
 #endif
@@ -119,6 +121,16 @@ private:
         uint8_t res;
         uint32_t time_to_first_fix;
         uint32_t uptime;                                // milliseconds
+    };
+    struct PACKED ubx_nav_dop {
+        uint32_t time;                                  // GPS msToW
+        uint16_t gDOP;
+        uint16_t pDOP;
+        uint16_t tDOP;
+        uint16_t vDOP;
+        uint16_t hDOP;
+        uint16_t nDOP;
+        uint16_t eDOP;
     };
     struct PACKED ubx_nav_solution {
         uint32_t time;
@@ -224,11 +236,34 @@ private:
             uint8_t lli;
         } svinfo[UBLOX_MAX_RXM_RAW_SATS];
     };
+    struct PACKED ubx_rxm_rawx {
+        double rcvTow;
+        uint16_t week;
+        int8_t leapS;
+        uint8_t numMeas;
+        uint8_t recStat;
+        uint8_t reserved1[3];
+        struct ubx_rxm_rawx_sv {
+            double prMes;
+            double cpMes;
+            float doMes;
+            uint8_t gnssId;
+            uint8_t svId;
+            uint8_t freqId;
+            uint16_t locktime;
+            uint8_t cno;
+            uint8_t prStdev;
+            uint8_t cpStdev;
+            uint8_t doStdev;
+            uint8_t trkStat;
+        } svinfo[UBLOX_MAX_RXM_RAWX_SATS];
+    };
 #endif
     // Receive buffer
     union PACKED {
         ubx_nav_posllh posllh;
         ubx_nav_status status;
+        ubx_nav_dop dop;
         ubx_nav_solution solution;
         ubx_nav_velned velned;
         ubx_cfg_nav_settings nav_settings;
@@ -239,6 +274,7 @@ private:
         ubx_nav_svinfo_header svinfo_header;
 #if UBLOX_RXM_RAW_LOGGING
         ubx_rxm_raw rxm_raw;
+        ubx_rxm_rawx rxm_rawx;
 #endif
         uint8_t bytes[];
     } _buffer;
@@ -255,6 +291,7 @@ private:
         MSG_ACK_ACK = 0x01,
         MSG_POSLLH = 0x2,
         MSG_STATUS = 0x3,
+        MSG_DOP = 0x4,
         MSG_SOL = 0x6,
         MSG_VELNED = 0x12,
         MSG_CFG_PRT = 0x00,
@@ -265,7 +302,8 @@ private:
         MSG_MON_HW = 0x09,
         MSG_MON_HW2 = 0x0B,
         MSG_NAV_SVINFO = 0x30,
-        MSG_RXM_RAW = 0x10
+        MSG_RXM_RAW = 0x10,
+        MSG_RXM_RAWX = 0x15
     };
     enum ubs_nav_fix_type {
         FIX_NONE = 0,
@@ -276,7 +314,8 @@ private:
         FIX_TIME = 5
     };
     enum ubx_nav_status_bits {
-        NAV_STATUS_FIX_VALID = 1
+        NAV_STATUS_FIX_VALID = 1,
+        NAV_STATUS_DGPS_USED = 2
     };
     enum ubx_hardware_version {
         ANTARIS = 0,
@@ -337,6 +376,7 @@ private:
     void log_mon_hw2(void);
     void log_accuracy(void);
     void log_rxm_raw(const struct ubx_rxm_raw &raw);
+    void log_rxm_rawx(const struct ubx_rxm_rawx &raw);
 };
 
 #endif // __AP_GPS_UBLOX_H__
