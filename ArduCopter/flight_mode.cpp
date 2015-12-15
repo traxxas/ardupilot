@@ -228,6 +228,12 @@ void Copter::exit_mode(uint8_t old_control_mode, uint8_t new_control_mode)
 #endif  // MOUNT == ENABLED
     }
 
+    // stop landing tone if we abort a land
+    if (old_control_mode == RTL || old_control_mode == LAND) {
+        AP_Notify::flags.auto_land = 0;
+    }
+
+
     // smooth throttle transition when switching from manual to automatic flight modes
     if (mode_has_manual_throttle(old_control_mode) && !mode_has_manual_throttle(new_control_mode) && motors.armed() && !ap.land_complete) {
         // this assumes all manual flight modes use get_pilot_desired_throttle to translate pilot input to output throttle

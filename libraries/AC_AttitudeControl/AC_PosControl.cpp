@@ -53,6 +53,7 @@ AC_PosControl::AC_PosControl(const AP_AHRS& ahrs, const AP_InertialNav& inav,
     _leash_up_z(POSCONTROL_LEASH_LENGTH_MIN),
     _roll_target(0.0f),
     _pitch_target(0.0f),
+    _vel_rsp_type(0),
     _alt_max(0.0f),
     _distance_to_target(0.0f),
     _accel_target_jerk_limited(0.0f,0.0f),
@@ -798,10 +799,13 @@ void AC_PosControl::pos_to_rate_xy(xy_mode mode, float dt, float ekfNavVelGainSc
             float vel_sqrt = safe_sqrt(2.0f*_accel_cms*(_distance_to_target-linear_distance));
             _vel_target.x = vel_sqrt * _pos_error.x/_distance_to_target;
             _vel_target.y = vel_sqrt * _pos_error.y/_distance_to_target;
+            _vel_rsp_type = 1;
+
         }else{
             // velocity response grows linearly with the distance
             _vel_target.x = _p_pos_xy.kP() * _pos_error.x;
             _vel_target.y = _p_pos_xy.kP() * _pos_error.y;
+            _vel_rsp_type = 2;
         }
 
         if (mode == XY_MODE_POS_LIMITED_AND_VEL_FF) {

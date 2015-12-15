@@ -30,6 +30,7 @@ Copter::Copter(void) :
             FUNCTOR_BIND_MEMBER(&Copter::verify_command_callback, bool, const AP_Mission::Mission_Command &),
             FUNCTOR_BIND_MEMBER(&Copter::exit_mission, void)),
     control_mode(STABILIZE),
+    input_cmd(PX4IO_P_CONTROL_INPUT_REQ_NONE),
 #if FRAME_CONFIG == HELI_FRAME  // helicopter constructor requires more arguments
     motors(g.rc_7, g.heli_servo_rsc, g.heli_servo_1, g.heli_servo_2, g.heli_servo_3, g.heli_servo_4, MAIN_LOOP_RATE),
 
@@ -54,6 +55,7 @@ Copter::Copter(void) :
     rtl_state(RTL_InitialClimb),
     rtl_state_complete(false),
     rtl_alt(0.0f),
+    rtl_brake_start_time_ms(0),
     circle_pilot_yaw_override(false),
     simple_cos_yaw(1.0f),
     simple_sin_yaw(0.0f),
@@ -82,6 +84,14 @@ Copter::Copter(void) :
     yaw_look_ahead_bearing(0.0f),
     condition_value(0),
     condition_start(0),
+    tpfc_fd(-1),
+    tpfc_sensor_handle(0),
+    tpfc_autopilot_handle(0),
+    tpfc_input_cmd_rsp_handle(0),
+    sound_lost_vehicle_alarm(false),
+    gps_monitor_ok(false),
+    save_calibration(true),
+    distance_to_home_cm(0),
     G_Dt(0.0025f),
     inertial_nav(ahrs),
 #if FRAME_CONFIG == HELI_FRAME

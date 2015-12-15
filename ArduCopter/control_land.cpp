@@ -30,6 +30,9 @@ bool Copter::land_init(bool ignore_checks)
 
     land_pause = false;
 
+    // Sound the landing warning tone
+    AP_Notify::flags.auto_land = 1;
+
     return true;
 }
 

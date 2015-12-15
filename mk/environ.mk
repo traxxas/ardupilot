@@ -84,6 +84,12 @@ ifneq ($(findstring px4, $(MAKECMDGOALS)),)
 BUILDROOT		:=	$(SKETCHBOOK)/Build.$(SKETCH)
 endif
 
+ifneq ($(findstring trx, $(MAKECMDGOALS)),)
+# when building trx we need all sources to be inside the sketchbook directory
+# as the NuttX build system relies on it
+BUILDROOT		:=	$(SKETCHBOOK)/Build.$(SKETCH)
+endif
+
 ifneq ($(findstring vrbrain, $(MAKECMDGOALS)),)
 # when building vrbrain we need all sources to be inside the sketchbook directory
 # as the NuttX build system relies on it
@@ -124,6 +130,10 @@ endif
 
 # handle target based overrides for board type
 ifneq ($(findstring px4, $(MAKECMDGOALS)),)
+HAL_BOARD = HAL_BOARD_PX4
+endif
+
+ifneq ($(findstring trx, $(MAKECMDGOALS)),)
 HAL_BOARD = HAL_BOARD_PX4
 endif
 

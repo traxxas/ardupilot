@@ -32,19 +32,23 @@ void Copter::fence_check()
 
             // disarm immediately if we think we are on the ground or in a manual flight mode with zero throttle
             // don't disarm if the high-altitude fence has been broken because it's likely the user has pulled their throttle to zero to bring it down
-            if (ap.land_complete || (mode_has_manual_throttle(control_mode) && ap.throttle_zero && !failsafe.radio && ((fence.get_breaches() & AC_FENCE_TYPE_ALT_MAX)== 0))){
-                init_disarm_motors();
-            }else{
+            // DGS: We don't want quads falling out of the sky; disabling this check.
+            // if (ap.land_complete || (mode_has_manual_throttle(control_mode) && ap.throttle_zero && !failsafe.radio && ((fence.get_breaches() & AC_FENCE_TYPE_ALT_MAX)== 0))){
+            //     init_disarm_motors();
+            // }else{
                 // if we are within 100m of the fence, RTL
-                if (fence.get_breach_distance(new_breaches) <= AC_FENCE_GIVE_UP_DISTANCE) {
-                    if (!set_mode(RTL)) {
-                        set_mode(LAND);
-                    }
-                }else{
-                    // if more than 100m outside the fence just force a land
-                    set_mode(LAND);
-                }
-            }
+                // if (fence.get_breach_distance(new_breaches) <= AC_FENCE_GIVE_UP_DISTANCE) {
+
+            // DGS: RTL only.  
+                    Log_Write_Data(200, 10);
+                    set_mode(RTL);
+                    // set_mode(LAND);
+                        //                    }
+                // }else{
+                //     // if more than 100m outside the fence just force a land
+                //     set_mode(LAND);
+                // }
+                //            }
         }
 
         // log an error in the dataflash

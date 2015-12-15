@@ -658,6 +658,143 @@ void Copter::Log_Sensor_Health()
         sensor_health.compass = compass.healthy();
         Log_Write_Error(ERROR_SUBSYSTEM_COMPASS, (sensor_health.compass ? ERROR_CODE_ERROR_RESOLVED : ERROR_CODE_UNHEALTHY));
     }
+
+struct PACKED log_CONTROL {
+    LOG_PACKET_HEADER;
+    uint64_t time_us;
+    int16_t  target_roll;
+    int16_t  target_pitch;
+    uint16_t target_yaw;
+    uint16_t target_throttle;
+    uint32_t dist_to_home_cm;
+    int8_t   flight_mode;
+    uint16_t gps_state;
+    uint16_t mag_state;
+    uint16_t ahrs_state;
+    uint16_t gyro_state;
+    uint16_t accel_state;
+    uint16_t fence_breach;
+};
+
+
+void Copter::Log_Write_Control(const tpfc_autopilot_s& apData)
+{
+    uint64_t time_us = hal.scheduler->micros64();
+
+    struct log_CONTROL pkt = {
+        LOG_PACKET_HEADER_INIT(LOG_CONTROL_MSG),
+        time_us         : time_us,
+        target_roll     : apData.target_roll,
+        target_pitch    : apData.target_pitch,
+        target_yaw      : apData.target_yaw,
+        target_throttle : apData.target_throttle,
+        dist_to_home_cm : distance_to_home_cm,
+        flight_mode     : (int8_t)apData.flight_mode,
+        gps_state       : apData.gps_state,
+        mag_state       : apData.mag_state,
+        ahrs_state      : apData.ahrs_state,
+        gyro_state      : apData.gyro_state,
+        accel_state     : apData.accel_state,
+        fence_breach    : apData.fence_breach,
+    };
+
+    DataFlash.WriteBlock(&pkt, sizeof(pkt));
+}
+
+
+struct PACKED log_FCU {
+    LOG_PACKET_HEADER;
+    uint64_t time_us;
+    uint16_t p1; 
+    uint16_t p2; 
+    uint16_t p3; 
+    uint16_t p4; 
+    uint16_t p5; 
+    uint16_t p6; 
+    uint16_t p7; 
+    uint16_t p8; 
+    uint16_t p9; 
+    uint16_t p10;
+    uint16_t p11;
+    uint16_t p12;
+    uint16_t p13;
+    uint16_t p14;
+};
+
+
+void Copter::Log_Write_FCU(const uint16_t* data, uint16_t data_size)
+{
+    uint64_t time_us = hal.scheduler->micros64();
+
+    if (data_size < 14) {
+        return;
+    }
+
+    struct log_FCU pkt = {
+        LOG_PACKET_HEADER_INIT(LOG_FCU_MSG),
+        time_us         : time_us,
+        p1              : data[0],
+        p2              : data[1],
+        p3              : data[2],
+        p4              : data[3],
+        p5              : data[4],
+        p6              : data[5],
+        p7              : data[6],
+        p8              : data[7],
+        p9              : data[8],
+        p10             : data[9],
+        p11             : data[10],
+        p12             : data[11],
+        p13             : data[12],
+        p14             : data[13],
+    };                         
+
+    DataFlash.WriteBlock(&pkt, sizeof(pkt));
+}
+
+
+ struct PACKED log_LOITER_TUNE {
+    LOG_PACKET_HEADER;
+    uint64_t time_us;
+    float    leash_xy;
+    float    leash_z_up;
+    uint8_t  vel_rsp_type;
+    float    pos_target_z;
+    float    pos_error_x;
+    float    pos_error_y;
+    float    pos_error_z;
+    float    vel_target_x;
+    float    vel_target_y;
+    float    vel_target_z;
+    float    vel_error_x;
+    float    vel_error_y;
+    float    vel_error_z;
+};
+
+
+void Copter::Log_Write_Loiter_Tune()
+{
+    uint64_t time_us = hal.scheduler->micros64();
+
+    struct log_LOITER_TUNE pkt = {
+        LOG_PACKET_HEADER_INIT(LOG_LOITER_TUNE_MSG),
+        time_us         : time_us,
+        leash_xy        : pos_control._leash,
+        leash_z_up      : pos_control._leash_up_z,
+        vel_rsp_type    : pos_control._vel_rsp_type,
+        pos_target_z    : pos_control._pos_target.z,
+        pos_error_x     : pos_control._pos_error.x,
+        pos_error_y     : pos_control._pos_error.y,
+        pos_error_z     : pos_control._pos_error.z,
+        vel_target_x    : pos_control._vel_target.x,
+        vel_target_y    : pos_control._vel_target.y,
+        vel_target_z    : pos_control._vel_target.z,
+        vel_error_x    : pos_control._vel_error.x,
+        vel_error_y    : pos_control._vel_error.y,
+        vel_error_z    : pos_control._vel_error.z,
+    };
+
+    DataFlash.WriteBlock(&pkt, sizeof(pkt));
 }
 
 struct PACKED log_Heli {
@@ -721,6 +858,12 @@ const struct LogStructure Copter::log_structure[] PROGMEM = {
       "ERR",   "QBB",         "TimeUS,Subsys,ECode" },
     { LOG_HELI_MSG, sizeof(log_Heli),
       "HELI",  "Qhh",         "TimeUS,DRRPM,ERRPM" },
+    { LOG_CONTROL_MSG, sizeof(log_CONTROL),
+      "CTRL",  "QccHHEbHHHHHH", "TimeUS,Roll,Pitch,Yaw,Thr,DstHm,Mode,GPS,Mag,EKF,Gyro,Acc,Fnc" },
+    { LOG_LOITER_TUNE_MSG, sizeof(log_LOITER_TUNE),
+      "LTUN",  "QffBffffffffff", "TimeUS,LXY,LZU,VRT,PTZ,PEX,PEY,PEZ,VTX,VTY,VTZ,VEX,VEY,VEZ" },
+    { LOG_FCU_MSG, sizeof(log_FCU),
+      "FCU",  "QHHHHHHHHHHHHHH", "TimeUS,P1,P2,P3,P4,P5,P6,P7,P8,P9,P10,P11,P12,P13,P14" },
 };
 
 #if CLI_ENABLED == ENABLED

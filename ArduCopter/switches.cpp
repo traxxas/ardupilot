@@ -280,6 +280,7 @@ void Copter::do_aux_switch_function(int8_t ch_function, uint8_t ch_flag)
         case AUXSW_RTL:
             if (ch_flag == AUX_SWITCH_HIGH) {
                 // engage RTL (if not possible we remain in current flight mode)
+                Log_Write_Data(200, 11);
                 set_mode(RTL);
             }else{
                 // return to flight mode switch's flight mode if we are currently in RTL

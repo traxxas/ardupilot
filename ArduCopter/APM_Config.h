@@ -43,6 +43,55 @@
 
 //#define HIL_MODE              HIL_MODE_SENSORS    // build for hardware-in-the-loop simulation
 
+
+// RTL with rear toward home
+#define WP_YAW_BEHAVIOR_DEFAULT   WP_YAW_BEHAVIOR_LOOK_AT_NEXT_WP_RTL_LOOK_AWAY
+
+#define RTL_ALT 				    1375    // default alt to return to home in cm, 1375 cm ~ 45 ft
+
+#define DEFAULT_ANGLE_MAX           7500    // 75 deg pitch/roll allowed in stabilize, althold, poshold
+
+#define PILOT_TKOFF_ALT_DEFAULT           365     // 3.65m or ~12ft, default alt above home for pilot initiated takeoff
+
+#define PILOT_TKOFF_DZ_DEFAULT             0     // Deadzone above and below mid throttle used in auto-takeoff
+
+#define PILOT_ACCEL_Z_DEFAULT            400     // vertical acceleration in cm/s/s while altitude is under pilot control
+
+#define PILOT_VELZ_MAX                  275     // maximum vertical velocity in cm/s
+
+#define THR_MIN_DEFAULT                  70     // minimum throttle sent to the motors when armed and pilot throttle above zero
+
+#define DEFAULT_LOG_BITMASK \
+    MASK_LOG_ATTITUDE_MED | \
+    MASK_LOG_GPS | \
+    MASK_LOG_PM | \
+    MASK_LOG_CTUN | \
+    MASK_LOG_NTUN | \
+    MASK_LOG_RCIN | \
+    MASK_LOG_IMU | \
+    MASK_LOG_CMD | \
+    MASK_LOG_CURRENT | \
+    MASK_LOG_RCOUT | \
+    MASK_LOG_OPTFLOW | \
+    MASK_LOG_COMPASS | \
+    MASK_LOG_CAMERA | \
+    MASK_LOG_MOTBATT | \
+    MASK_LOG_FCU_FAST | \
+    MASK_LOG_CONTROL
+
+
+
+// GPS signal monitoring.  Consists of required horizontal accuracy
+// for the initial lock and subsequent (in-flight) locks.  Require
+// initial to be tighter to ensure a good signal.  GPS_OUTAGE_REPORT_DELAY_MS
+// is number of milliseconds above GPS_REQUIRED_HACC before an outage
+// is reported.
+// 
+#define GPS_REQUIRED_INITIAL_HACC            2.1f 
+#define GPS_REQUIRED_HACC                    2.6f
+#define GPS_OUTAGE_REPORT_DELAY_MS           2000
+
+
 // User Hooks : For User Developed code that you wish to run
 // Put your variable definitions into the UserVariables.h file (or another file name and then change the #define below).
 //#define USERHOOK_VARIABLES "UserVariables.h"

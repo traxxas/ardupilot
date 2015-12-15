@@ -312,10 +312,14 @@ void Copter::startup_ground(bool force_gyro_cal)
 bool Copter::position_ok()
 {
     // return false if ekf failsafe has triggered
-    if (failsafe.ekf) {
+    if (failsafe.ekf ) {
         return false;
     }
 
+    if (!gps_monitor_ok) {
+        return false;
+    }
+        
     // check ekf position estimate
     return (ekf_position_ok() || optflow_position_ok());
 }

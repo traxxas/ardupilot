@@ -79,6 +79,17 @@ else
    set deviceD /dev/ttyS2
 fi
 
+if [ $BOARD == FMUv2 ]
+then
+  # Firmware upgrade needed?
+  if fmu_update_ck /fs/microsd
+  then
+    echo "Firmware upgrade needed"
+    tone_alarm MNBCG
+    sleep 2
+    reboot
+fi
+
 if uorb start
 then
     echo "uorb started OK"
@@ -108,6 +119,13 @@ then
     mkblctrl -mkmode x -d /dev/pwm_output
 fi
 
+set PX4IO_FW /etc/px4io/px4io.bin
+
+if [ -f /fs/microsd/px4io.bin ]
+then
+    set PX4IO_FW /fs/microsd/px4io.bin
+    echo "Found alternate px4io firmware $PX4IO_FW" 
+fi
 
 echo "Trying PX4IO board"
 
@@ -119,9 +137,9 @@ then
     set HAVE_PX4IO true
 else
     # it may be in bootloader mode
-    echo Loading /etc/px4io/px4io.bin
+    echo Loading $PX4IO_FW
     tone_alarm MBABGP
-    if px4io update /etc/px4io/px4io.bin
+    if px4io update $PX4IO_FW
     then
 	echo "upgraded PX4IO firmware OK"
         tone_alarm MSPAA
@@ -135,13 +153,16 @@ else
         set HAVE_PX4IO true
         # play happy tune again
 	tone_alarm 1
+    else
+        # DGS-need fail feedback
+        echo "PX4IO failed to start on second try"
     fi
 fi
 
 if [ $HAVE_PX4IO == true ]
 then
     echo "PX4IO board OK"
-    if px4io checkcrc /etc/px4io/px4io.bin
+    if px4io checkcrc $PX4IO_FW
     then
         echo "PX4IO CRC OK"
     else
@@ -158,7 +179,7 @@ then
 
         sleep 1
 
-        if px4io forceupdate 14662 /etc/px4io/px4io.bin
+        if px4io forceupdate 14662 $PX4IO_FW
         then
                sleep 1
                if px4io start norc
@@ -251,28 +272,29 @@ else
     else
         echo "No external hmc5883"
     fi
-    if hmc5883 -C -T -I -R 4 start
-    then
-        echo "Have internal hmc5883"
-    else
-        echo "No internal hmc5883"
-    fi
+# No internal hmc5883 on Aton
+#    if hmc5883 -C -T -I -R 4 start
+#    then
+#        echo "Have internal hmc5883"
+#    else
+#        echo "No internal hmc5883"
+#    fi
 
-    # external MPU6000 is rotated YAW_180 from standard
-    if mpu6000 -X -R 4 start
-    then
-       echo "Found MPU6000 external"
-       set HAVE_FMUV3 true
-    else
-       if mpu9250 -X -R 4 start
-       then
-           echo "Found MPU9250 external"
-           set HAVE_FMUV3 true
-       else
-           echo "No MPU6000 or MPU9250 external"
+     # external MPU6000 is rotated YAW_180 from standard
+#    if mpu6000 -X -R 4 start
+#    then
+#       echo "Found MPU6000 external"
+#       set HAVE_FMUV3 true
+#    else
+#       if mpu9250 -X -R 4 start
+#       then
+#           echo "Found MPU9250 external"
+#           set HAVE_FMUV3 true
+#       else
+#           echo "No MPU6000 or MPU9250 external"
            set HAVE_FMUV3 false
-       fi
-    fi
+#       fi
+#    fi
     if [ $HAVE_FMUV3 == true ]
     then
         # external L3GD20 is rotated YAW_180 from standard
@@ -310,7 +332,9 @@ else
                echo "Found SPI hmc5883"
         fi
     else
-        if mpu6000 start
+      # DGS-this part is on top side of TRX board, bottom of PX4.  Roll 180
+      #  to get in same alignment.
+      if mpu6000 -R 8 start
         then
                echo "Found MPU6000"
         else
@@ -322,64 +346,70 @@ else
                    echo "No MPU9250" >> $logfile
                fi
         fi
-        if l3gd20 start
-        then
-               echo "l3gd20 started OK"
-        else
-               sh /etc/init.d/rc.error
-        fi
-        if lsm303d start
-        then
-               echo "lsm303d started OK"
-        else
-               sh /etc/init.d/rc.error
-        fi
+        #DGS-unsupported on TRX, do not start
+        # if l3gd20 start
+        # then
+        #        echo "l3gd20 started OK"
+        # else
+        #        sh /etc/init.d/rc.error
+        # fi
+        # if lsm303d start
+        # then
+        #        echo "lsm303d started OK"
+        # else
+        #        sh /etc/init.d/rc.error
+        # fi
     fi
 fi
 
 # optional ETS airspeed sensor
-if ets_airspeed start
-then
-    echo "Found ETS airspeed sensor"
-fi
+#if ets_airspeed start
+#then
+#    echo "Found ETS airspeed sensor"
+#fi
 
-if meas_airspeed start
-then
-    echo "Found MEAS airspeed sensor"
-fi
+#if meas_airspeed start
+#then
+#    echo "Found MEAS airspeed sensor"
+#fi
 
+#DGS-unsupported on TRX
 # optional Range Finder sensor
-if ll40ls -X start
-then
-    echo "Found external ll40ls sensor"
-fi
+# if ll40ls -X start
+# then
+#     echo "Found external ll40ls sensor"
+# fi
 
-if ll40ls -I start
-then
-    echo "Found internal ll40ls sensor"
-fi
+#DGS-unsupported on TRX
+# if ll40ls -I start
+# then
+#     echo "Found internal ll40ls sensor"
+# fi
 
-if trone start
-then
-    echo "Found trone sensor"
-fi
+#DGS-unsupported on TRX
+# if trone start
+# then
+#     echo "Found trone sensor"
+# fi
 
-if mb12xx start
-then
-    echo "Found mb12xx sensor"
-fi
+#DGS-unsupported on TRX
+# if mb12xx start
+# then
+#     echo "Found mb12xx sensor"
+# fi
 
+#DGS-unsupported on TRX
 # optional PX4Flow sensor
-if px4flow start
-then
-    echo "Found px4flow sensor"
-fi
+# if px4flow start
+# then
+#     echo "Found px4flow sensor"
+# fi
 
 # optional PWM input driver
-if pwm_input start
-then
-    echo "started pwm_input driver"
-fi
+#if pwm_input start
+#then
+#    echo "started pwm_input driver"
+#fi
 
 echo "Trying PX4IO board"
 
@@ -394,34 +424,34 @@ fi
 
 if mtd readtest /fs/mtd
 then
-    echo "mtd readtest OK"
+   echo "mtd readtest OK"
 else
-    echo "failed to read mtd"
-    echo "failed to read mtd" >> $logfile
-    sh /etc/init.d/rc.error           
+   echo "failed to read mtd"
+   echo "failed to read mtd" >> $logfile
+   sh /etc/init.d/rc.error           
 fi
 
-if [ -f /bin/uavcan ]
-then
-    if uavcan start 1
-    then
-        echo "started uavcan OK"
-    else
-        echo "failed to start uavcan"
-    fi
-fi
+#if [ -f /bin/uavcan ]
+#then
+#    if uavcan start 1
+#    then
+#        echo "started uavcan OK"
+#    else
+#        echo "failed to start uavcan"
+#    fi
+#fi
 
 # optional smbus battery monitor
-if batt_smbus -b 2 start
-then
-    echo "Found batt_smbus"
-fi
+#if batt_smbus -b 2 start
+#then
+#  echo "Found batt_smbus"
+#fi
 
 # optional oreo leds
-if oreoled start
-then
-    echo "oreoled started OK"
-fi
+#if oreoled start
+#then
+#    echo "oreoled started OK"
+#fi
 
 if [ $BOARD == FMUv2 ]
 then
@@ -429,14 +459,15 @@ then
   # writes. This full rw test on each boot ensures it is working
   # properly. We have one board that failed this, so
   # the test is arguably worth having
-  if mtd rwtest /fs/mtd
-  then
-    echo "mtd rwtest OK"
-  else
-    echo "failed to test mtd"
-    echo "failed to test mtd" >> $logfile
-    sh /etc/init.d/rc.error           
-  fi
+
+ if mtd rwtest /fs/mtd
+ then
+   echo "mtd rwtest OK"
+ else
+   echo "failed to test mtd"
+   echo "failed to test mtd" >> $logfile
+   sh /etc/init.d/rc.error           
+ fi
 fi
 
 echo Starting ArduPilot $deviceA $deviceC $deviceD

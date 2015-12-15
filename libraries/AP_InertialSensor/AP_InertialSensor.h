@@ -235,6 +235,15 @@ public:
     void set_delta_velocity(uint8_t instance, float deltavt, const Vector3f &deltav);
     void set_delta_angle(uint8_t instance, const Vector3f &deltaa);
 
+
+    // DGS: Used for emergency restore only.  Can be removed when fram
+    // bug is found.
+    //
+    void set_accel_offsets(uint8_t instance, const Vector3f &accel_offsets);
+    void set_accel_offsets(const Vector3f &accel_offsets);
+    void set_accel_scale(uint8_t instance, const Vector3f &accel_offsets);
+    void set_accel_scale(const Vector3f &accel_offsets);
+
 private:
 
     // load backend drivers

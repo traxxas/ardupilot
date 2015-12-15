@@ -51,6 +51,8 @@ MODULES		+= systemcmds/top
 MODULES		+= systemcmds/nshterm
 MODULES         += systemcmds/mtd
 MODULES         += systemcmds/ver
+MODULES         += systemcmds/tpfc_test
+MODULES         += systemcmds/fmu_update_ck
 
 ifneq ($(wildcard $(PX4_ROOT)/src/systemcmds/reflect),)  
 MODULES         += systemcmds/reflect

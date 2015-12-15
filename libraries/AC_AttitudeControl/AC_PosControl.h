@@ -41,7 +41,7 @@
 #define POSCONTROL_THROTTLE_CUTOFF_FREQ         2.0f    // low-pass filter on accel error (unit: hz)
 #define POSCONTROL_JERK_LIMIT_CMSSS             1700.0f // jerk limit on horizontal acceleration (unit: m/s/s/s)
 #define POSCONTROL_ACCEL_FILTER_HZ              2.0f    // low-pass filter on acceleration (unit: hz)
-#define POSCONTROL_JERK_RATIO                   1.0f    // Defines the time it takes to reach the requested acceleration
+#define POSCONTROL_JERK_RATIO                   1.5f    // Defines the time it takes to reach the requested acceleration
 
 #define POSCONTROL_OVERSPEED_GAIN_Z             2.0f    // gain controlling rate at which z-axis speed is brought back within SPEED_UP and SPEED_DOWN range
 
@@ -377,20 +377,26 @@ private:
     float       _accel_z_cms;           // max vertical acceleration in cm/s/s
     float       _accel_last_z_cms;      // max vertical acceleration in cm/s/s
     float       _accel_cms;             // max horizontal acceleration in cm/s/s
+public:
     float       _leash;                 // horizontal leash length in cm.  target will never be further than this distance from the vehicle
     float       _leash_down_z;          // vertical leash down in cm.  target will never be further than this distance below the vehicle
     float       _leash_up_z;            // vertical leash up in cm.  target will never be further than this distance above the vehicle
+private:
 
     // output from controller
     float       _roll_target;           // desired roll angle in centi-degrees calculated by position controller
     float       _pitch_target;          // desired roll pitch in centi-degrees calculated by position controller
 
+public:
     // position controller internal variables
     Vector3f    _pos_target;            // target location in cm from home
     Vector3f    _pos_error;             // error between desired and actual position in cm
     Vector3f    _vel_desired;           // desired velocity in cm/s
     Vector3f    _vel_target;            // velocity target in cm/s calculated by pos_to_rate step
+    // DGS: remove this
+    uint8_t     _vel_rsp_type; 
     Vector3f    _vel_error;             // error between desired and actual acceleration in cm/s
+private:
     Vector3f    _vel_last;              // previous iterations velocity in cm/s
     Vector3f    _accel_target;          // desired acceleration in cm/s/s  // To-Do: are xy actually required?
     Vector3f    _accel_error;           // desired acceleration in cm/s/s  // To-Do: are xy actually required?

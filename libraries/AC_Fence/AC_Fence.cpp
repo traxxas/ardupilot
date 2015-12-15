@@ -10,7 +10,7 @@ const AP_Param::GroupInfo AC_Fence::var_info[] PROGMEM = {
     // @Description: Allows you to enable (1) or disable (0) the fence functionality
     // @Values: 0:Disabled,1:Enabled
     // @User: Standard
-    AP_GROUPINFO("ENABLE",      0,  AC_Fence,   _enabled,   0),
+    AP_GROUPINFO("ENABLE",      0,  AC_Fence,   _enabled,   1),
 
     // @Param: TYPE
     // @DisplayName: Fence Type
@@ -102,9 +102,9 @@ bool AC_Fence::pre_arm_check() const
     }
 
     // if we have horizontal limits enabled, check inertial nav position is ok
-    if ((_enabled_fences & AC_FENCE_TYPE_CIRCLE)!=0 && !_inav.get_filter_status().flags.horiz_pos_abs && !_inav.get_filter_status().flags.pred_horiz_pos_abs) {
-        return false;
-    }
+    //    if ((_enabled_fences & AC_FENCE_TYPE_CIRCLE)!=0 && !_inav.get_filter_status().flags.horiz_pos_abs && !_inav.get_filter_status().flags.pred_horiz_pos_abs) {
+    //        return false;
+    //    }
 
     // if we got this far everything must be ok
     return true;

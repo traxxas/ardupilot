@@ -32,6 +32,9 @@
 #include <math.h>
 #include <string.h>
 
+#include <stm32_bkp.h>
+
+
 extern const AP_HAL::HAL &hal;
 
 #define ENABLE_DEBUG 0
@@ -103,6 +106,8 @@ void AP_Param::write_sentinal(uint16_t ofs)
 void AP_Param::erase_all(void)
 {
     struct EEPROM_header hdr;
+
+    (*(uint32_t *) STM32_BKP_DR9)++;
 
     Debug("erase_all");
 

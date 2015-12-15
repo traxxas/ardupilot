@@ -305,6 +305,7 @@ struct PACKED log_EKF1 {
     float posN;
     float posE;
     float posD;
+    uint8_t posOK;
     int16_t gyrX;
     int16_t gyrY;
     int16_t gyrZ;
@@ -684,13 +685,13 @@ Format characters in the format string for binary log messages
     { LOG_SIMSTATE_MSG, sizeof(log_AHRS), \
       "SIM","QccCfLL","TimeUS,Roll,Pitch,Yaw,Alt,Lat,Lng" }, \
     { LOG_EKF1_MSG, sizeof(log_EKF1), \
-      "EKF1","QccCffffffccc","TimeUS,Roll,Pitch,Yaw,VN,VE,VD,PN,PE,PD,GX,GY,GZ" }, \
+      "EKF1","QccCffffffBccc","TimeUS,Roll,Pitch,Yaw,VN,VE,VD,PN,PE,PD,POK,GX,GY,GZ" }, \
     { LOG_EKF2_MSG, sizeof(log_EKF2), \
       "EKF2","Qbbbcchhhhhh","TimeUS,Ratio,AZ1bias,AZ2bias,VWN,VWE,MN,ME,MD,MX,MY,MZ" }, \
     { LOG_EKF3_MSG, sizeof(log_EKF3), \
       "EKF3","Qcccccchhhc","TimeUS,IVN,IVE,IVD,IPN,IPE,IPD,IMX,IMY,IMZ,IVT" }, \
     { LOG_EKF4_MSG, sizeof(log_EKF4), \
-      "EKF4","QcccccccbbBBH","TimeUS,SV,SP,SH,SMX,SMY,SMZ,SVT,OFN,EFE,FS,TS,SS" }, \
+      "EKF4","QcccccccbbBBH","TimeUS,SV,SP,SH,SMX,SMY,SMZ,SVT,OFN,OFE,FS,TS,SS" }, \
     { LOG_TERRAIN_MSG, sizeof(log_TERRAIN), \
       "TERR","QBLLHffHH","TimeUS,Status,Lat,Lng,Spacing,TerrH,CHeight,Pending,Loaded" }, \
     { LOG_UBX1_MSG, sizeof(log_Ubx1), \
@@ -836,6 +837,9 @@ enum LogMessages {
     LOG_IMUDT_MSG,
     LOG_IMUDT2_MSG,
     LOG_IMUDT3_MSG,
+    LOG_CONTROL_MSG,
+    LOG_LOITER_TUNE_MSG,
+    LOG_FCU_MSG,
     LOG_ORGN_MSG,
     LOG_RPM_MSG
 };

@@ -28,6 +28,7 @@ void Copter::failsafe_radio_on_event()
             // if far from home then RTL
             } else if(home_distance > FS_CLOSE_TO_HOME_CM) {
                 // switch to RTL or if that fails, LAND
+                Log_Write_Data(200, 1);
                 set_mode_RTL_or_land_with_pause();
 
             // We have no GPS or are very close to home so we will land
@@ -49,6 +50,7 @@ void Copter::failsafe_radio_on_event()
             } else if (g.failsafe_throttle == FS_THR_ENABLED_ALWAYS_RTL) {
                 if (home_distance > FS_CLOSE_TO_HOME_CM) {
                     // switch to RTL or if that fails, LAND
+                    Log_Write_Data(200, 2);
                     set_mode_RTL_or_land_with_pause();
                 }else{
                     // We are very close to home so we will land
@@ -77,6 +79,7 @@ void Copter::failsafe_radio_on_event()
             // if far from home then RTL
             } else if(home_distance > FS_CLOSE_TO_HOME_CM) {
                 // switch to RTL or if that fails, LAND
+                Log_Write_Data(200, 3);
                 set_mode_RTL_or_land_with_pause();
             }else{
                 // We have no GPS or are very close to home so we will land
@@ -119,6 +122,7 @@ void Copter::failsafe_battery_event(void)
                     // set mode to RTL or LAND
                     if (g.failsafe_battery_enabled == FS_BATT_RTL && home_distance > FS_CLOSE_TO_HOME_CM) {
                         // switch to RTL or if that fails, LAND
+                        Log_Write_Data(200, 4);
                         set_mode_RTL_or_land_with_pause();
                     }else{
                         set_mode_land_with_pause();
@@ -133,6 +137,7 @@ void Copter::failsafe_battery_event(void)
                 // set mode to RTL or LAND
                 } else if (home_distance > FS_CLOSE_TO_HOME_CM) {
                     // switch to RTL or if that fails, LAND
+                    Log_Write_Data(200, 5);
                     set_mode_RTL_or_land_with_pause();
                 } else {
                     set_mode_land_with_pause();
@@ -147,6 +152,7 @@ void Copter::failsafe_battery_event(void)
                 // set mode to RTL or LAND
                 } else if (g.failsafe_battery_enabled == FS_BATT_RTL && home_distance > FS_CLOSE_TO_HOME_CM) {
                     // switch to RTL or if that fails, LAND
+                    Log_Write_Data(200, 6);
                     set_mode_RTL_or_land_with_pause();
                 } else {
                     set_mode_land_with_pause();
@@ -214,6 +220,7 @@ void Copter::failsafe_gcs_check()
                 init_disarm_motors();
             }else if(home_distance > FS_CLOSE_TO_HOME_CM) {
                 // switch to RTL or if that fails, LAND
+                Log_Write_Data(200, 7);
                 set_mode_RTL_or_land_with_pause();
             }else{
                 // We have no GPS or are very close to home so we will land
@@ -228,6 +235,7 @@ void Copter::failsafe_gcs_check()
             } else if (g.failsafe_gcs == FS_GCS_ENABLED_ALWAYS_RTL) {
                 if (home_distance > FS_CLOSE_TO_HOME_CM) {
                     // switch to RTL or if that fails, LAND
+                    Log_Write_Data(200, 8);
                     set_mode_RTL_or_land_with_pause();
                 }else{
                     // We are very close to home so we will land
@@ -243,6 +251,7 @@ void Copter::failsafe_gcs_check()
                 init_disarm_motors();
             } else if (home_distance > FS_CLOSE_TO_HOME_CM) {
                 // switch to RTL or if that fails, LAND
+                Log_Write_Data(200, 9);
                 set_mode_RTL_or_land_with_pause();
             }else{
                 // We have no GPS or are very close to home so we will land

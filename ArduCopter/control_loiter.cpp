@@ -123,6 +123,12 @@ void Copter::loiter_run()
 #else   // multicopters do not stabilize roll/pitch/yaw when disarmed
         // move throttle to between minimum and non-takeoff-throttle to keep us on the ground
         attitude_control.set_throttle_out_unstabilized(get_throttle_pre_takeoff(channel_throttle->control_in),true,g.throttle_filt);
+
+        // disarm when throttle is at minimum
+        if (ap.throttle_zero) {
+            init_disarm_motors();
+        }
+
 #endif
         pos_control.relax_alt_hold_controllers(get_throttle_pre_takeoff(channel_throttle->control_in)-throttle_average);
         break;

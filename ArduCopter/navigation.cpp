@@ -64,9 +64,16 @@ void Copter::calc_home_distance_and_bearing()
 {
     // calculate home distance and bearing
     if (position_ok()) {
-        Vector3f home = pv_location_to_vector(ahrs.get_home());
+        const Location& homeLoc = ahrs.get_home();
+        Vector3f home = pv_location_to_vector(homeLoc);
         Vector3f curr = inertial_nav.get_position();
+
+        // Compute distance to home.  Note the "home_distance" below
+        // can sometimes be a distance to the EKF's origin point, not
+        // the AHRS's home position.
+        distance_to_home_cm = get_distance_cm(homeLoc, current_loc);
         home_distance = pv_get_horizontal_distance_cm(curr, home);
+
         home_bearing = pv_get_bearing_cd(curr,home);
 
         // update super simple bearing (if required) because it relies on home_bearing

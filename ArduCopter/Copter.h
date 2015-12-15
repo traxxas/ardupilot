@@ -107,6 +107,10 @@
 #include <AP_RPM/AP_RPM.h>
 #include <AC_InputManager/AC_InputManager.h>        // Pilot input handling library
 #include <AC_InputManager/AC_InputManager_Heli.h>   // Heli specific pilot input handling library
+#include <uORB/uORB.h>
+#include <uORB/topics/tpfc_autopilot.h>
+#include <modules/px4iofirmware/protocol.h>
+#include <drivers/drv_tpfc.h>    // Flight controller comm driver
 
 // AP_HAL to Arduino compatibility layer
 // Configuration
@@ -243,6 +247,10 @@ private:
     // There are multiple states defined such as STABILIZE, ACRO,
     int8_t control_mode;
 
+    // Last command received from flight control.
+    //
+    uint16_t input_cmd;
+
     // Structure used to detect changes in the flight mode control switch
     struct {
         int8_t debounced_switch_position;   // currently used switch position
@@ -333,6 +341,7 @@ private:
     RTLState rtl_state;  // records state of rtl (initial climb, returning home, etc)
     bool rtl_state_complete; // set to true if the current state is completed
     float rtl_alt;     // altitude the vehicle is returning at
+    uint32_t rtl_brake_start_time_ms; // timestamp when brake state started
 
     // Circle
     bool circle_pilot_yaw_override; // true if pilot is overriding yaw
@@ -405,6 +414,15 @@ private:
     // Delay Mission Scripting Command
     int32_t condition_value;  // used in condition commands (eg delay, change alt, etc.)
     uint32_t condition_start;
+
+    int tpfc_fd;
+    orb_advert_t tpfc_sensor_handle;
+    orb_advert_t tpfc_autopilot_handle;
+    orb_advert_t tpfc_input_cmd_rsp_handle;
+    bool sound_lost_vehicle_alarm;
+    bool     gps_monitor_ok;
+    bool     save_calibration;
+    uint32_t distance_to_home_cm;
 
     // IMU variables
     // Integration time (in seconds) for the gyros (DCM algorithm)
@@ -548,6 +566,12 @@ private:
     void update_super_simple_bearing(bool force_update);
     void read_AHRS(void);
     void update_altitude();
+    void set_new_calibration();
+    void check_cmd_input();
+    void publish_input_cmd_rsp(bool success);
+    void update_ctrl_output();
+    void check_flight_mode();
+    void update_tpfc();
     void set_home_state(enum HomeState new_home_state);
     bool home_is_set();
     void set_auto_armed(bool b);
@@ -626,6 +650,9 @@ private:
     void Log_Write_Parameter_Tuning(uint8_t param, float tuning_val, int16_t control_in, int16_t tune_low, int16_t tune_high);
     void Log_Write_Home_And_Origin();
     void Log_Sensor_Health();
+    void Log_Write_Control(const tpfc_autopilot_s& apData);
+    void Log_Write_Loiter_Tune();
+    void Log_Write_FCU(const uint16_t* data, uint16_t data_size);
 #if FRAME_CONFIG == HELI_FRAME
     void Log_Write_Heli(void);
 #endif
@@ -762,6 +789,8 @@ private:
 
     bool rtl_init(bool ignore_checks);
     void rtl_run();
+    void rtl_brake_start();
+    void rtl_brake_run();
     void rtl_climb_start();
     void rtl_return_start();
     void rtl_climb_return_run();

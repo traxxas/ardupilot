@@ -39,7 +39,7 @@
 #define POS_GATE_DEFAULT        10
 #define HGT_GATE_DEFAULT        10
 #define MAG_GATE_DEFAULT        3
-#define MAG_CAL_DEFAULT         1
+#define MAG_CAL_DEFAULT         2
 #define GLITCH_ACCEL_DEFAULT    100
 #define GLITCH_RADIUS_DEFAULT   25
 #define FLOW_MEAS_DELAY         10
@@ -2173,7 +2173,7 @@ void NavEKF::FuseVelPosNED()
             fuseData[0] = true;
             fuseData[1] = true;
         }
-
+    
         // fuse measurements sequentially
         for (obsIndex=0; obsIndex<=5; obsIndex++) {
             if (fuseData[obsIndex]) {
@@ -2266,7 +2266,7 @@ void NavEKF::FuseVelPosNED()
                 if (obsIndex == 5){
                     // Calculate height measurement innovations using single IMU states
                     float hgtInnov1 = statesAtHgtTime.posD1 - observation[obsIndex];
-                    float hgtInnov2 = statesAtHgtTime.posD2 - observation[obsIndex];
+                    float hgtInnov2 = statesAtHgtTime.posD2 - observation[obsIndex]; 
 
                     if (vehicleArmed) {
                         // Correct single IMU prediction states using height measurement, limiting rate of change of bias to 0.005 m/s3

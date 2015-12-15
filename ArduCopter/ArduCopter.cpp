@@ -76,6 +76,15 @@
 #include "Copter.h"
 
 #define SCHED_TASK(func) FUNCTOR_BIND(&copter, &Copter::func, void)
+#include <fcntl.h>  // open()
+// Drivers
+#include <uORB/topics/tpfc_sensors.h>
+#include <uORB/topics/tpfc_input_cmd_rsp.h>
+#include <board_config.h>
+#include <stm32_gpio.h>
+
+
+#define MAX_DIST_TO_HOME               1000   // 1000cm = 10m
 
 /*
   scheduler table for fast CPUs - all regular tasks apart from the fast_loop()
@@ -102,9 +111,12 @@ const AP_Scheduler::Task Copter::scheduler_tasks[] PROGMEM = {
 #endif
     { SCHED_TASK(update_batt_compass),  40,    120 },
     { SCHED_TASK(read_aux_switches),    40,     50 },
+    { SCHED_TASK(check_cmd_input),      20,     50 },
     { SCHED_TASK(arm_motors_check),     40,     50 },
     { SCHED_TASK(auto_trim),            40,     75 },
     { SCHED_TASK(update_altitude),      40,    140 },
+    { SCHED_TASK(update_ctrl_output),   4,     300 },
+    { SCHED_TASK(check_flight_mode),    40,     75 },
     { SCHED_TASK(run_nav_updates),       8,    100 },
     { SCHED_TASK(update_thr_average),    4,     90 },
     { SCHED_TASK(three_hz_loop),       133,     75 },
@@ -153,6 +165,36 @@ const AP_Scheduler::Task Copter::scheduler_tasks[] PROGMEM = {
 };
 
 
+__EXPORT int tpfc_send_ekf_data = 1;      // send to FC board?
+
+__EXPORT int tpfc_new_loiter_stop_algorithm = 0;
+__EXPORT int tpfc_baro_new_algorithm = 0;
+
+__EXPORT uint32_t tpfc_rtl_brake = 1;
+__EXPORT uint32_t tpfc_rtl_brake_duration_ms = 3000;
+__EXPORT uint32_t tpfc_rtl_brake_velocity_cms = 300;
+
+
+__EXPORT int tpfc_display_ekf_data = 0;   // display ekf data to console
+__EXPORT int tpfc_display_error_data = 0; // display stats to console
+__EXPORT float tpfc_jerk_ratio = 1700.0f;
+
+
+__EXPORT uint32_t tpfc_mtd_writes = 0;
+__EXPORT uint32_t tpfc_mtd_reads  = 0;
+__EXPORT uint32_t tpfc_eeprom_writes = 0;
+__EXPORT uint32_t tpfc_eeprom_reads  = 0;
+
+
+uint16_t tpfc_ekf_errors = 0;
+uint16_t tpfc_bad_fd_errors = 0;
+uint16_t tpfc_ioctl_errors = 0;
+uint16_t tpfc_ioctl_success = 0;
+const unsigned int tpfc_display_stats_period = 500; // in loops
+const unsigned int tpfc_display_data_period  = 1200; // in loops, 1/3Hz
+
+
+
 void Copter::setup() 
 {
     cliSerial = hal.console;
@@ -162,6 +204,8 @@ void Copter::setup()
 
     // setup storage layout for copter
     StorageManager::set_layout_copter();
+
+    tpfc_fd = open(PX4IO_DEVICE_PATH, O_WRONLY);
 
     init_ardupilot();
 
@@ -239,10 +283,110 @@ void Copter::loop()
     scheduler.run(time_available);
 }
 
+uint64_t tpfc_loop_last_timestamp = 0;
+uint32_t tpfc_loop_count = 0;
+
+
+__EXPORT bool tpfc_print_loop_timings = false;
+__EXPORT uint16_t tpfc_ekf_health_filter = 0;
+__EXPORT uint16_t tpfc_ekf_health_ratio = 0;
+__EXPORT uint16_t tpfc_ekf_health_imu = 0;
+__EXPORT uint16_t tpfc_ekf_health_innovations = 0;
+
 
 // Main loop - 400hz
 void Copter::fast_loop()
 {
+    uint64_t now = hal.scheduler->micros64();
+    
+    if (tpfc_print_loop_timings) {
+
+        tpfc_print_loop_timings = 0;
+
+        printf("Armed state: %s\n", (motors.armed()?"ON":"OFF"));
+
+        printf("Flight mode:%d\n", control_mode);
+        
+        printf("Takeoff throttle: %d + %d = %f\n",
+               channel_throttle->get_control_mid(),
+               g.takeoff_trigger_dz,
+               get_takeoff_trigger_throttle());
+
+        Vector3f angle_targets = attitude_control.angle_ef_targets();
+            
+        uint16_t target_yaw = angle_targets.z;
+
+        printf("Target yaw: %6.1f, converted: %d\n", angle_targets.z, target_yaw);
+
+        float hAcc = 0.0f;
+        gps.horizontal_accuracy(hAcc);
+
+        printf("EKF/GPS, status:%d primary:%d fusion:%d originOK:%s  avail:%s  armed:%s  aid mode:%d  fusevel:%s  hAcc:%f  hdop:%d  sats:%d home dist:%d\n",
+               gps.status(),
+               gps.primary_sensor(),
+               ahrs.get_NavEKF_const()._fusionModeGPS,
+               (ahrs.get_NavEKF_const().validOrigin?"Y":"N"),
+               (ahrs.get_NavEKF_const().gpsNotAvailable?"N":"Y"),
+               (ahrs.get_NavEKF_const().vehicleArmed?"Y":"N"),
+               ahrs.get_NavEKF_const().PV_AidingMode,
+               (ahrs.get_NavEKF_const().fuseVelData?"Y":"N"),
+               hAcc,
+               gps.get_hdop(),
+               gps.num_sats(),
+               distance_to_home_cm
+               );
+
+
+        printf("ap bit fields: %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d 0x%04x\n",
+               ap.unused1,
+               ap.simple_mode,
+               ap.pre_arm_rc_check,
+               ap.pre_arm_check,
+               ap.auto_armed,
+               ap.logging_started,
+               ap.land_complete,
+               ap.new_radio_frame,
+               ap.usb_connected,
+               ap.rc_receiver_present,
+               ap.compass_mot,
+               ap.motor_test,
+               ap.initialised,
+               ap.land_complete_maybe,
+               ap.throttle_zero,
+               ap.system_time_set,
+               ap.gps_base_pos_set,
+               ap.home_state,
+               ap.using_interlock,
+               ap.motor_emergency_stop,
+               ap.value);
+               
+
+        
+#if 0
+        printf("Radio in, yaw:%d, pitch:%d, roll:%d, throttle:%d , Control In yaw:%d, pitch:%d, roll:%d, throttle:%d\n",
+               channel_yaw->radio_in,  channel_pitch->radio_in, channel_roll->radio_in, channel_throttle->radio_in,
+               channel_yaw->control_in,  channel_pitch->control_in, channel_roll->control_in, channel_throttle->control_in);
+
+        printf("Yaw scale, min:%d, max:%d, trim:%d, reverse:%d dz:%d  high:%d\n",
+               channel_yaw->radio_min, channel_yaw->radio_max,
+               channel_yaw->radio_trim, (channel_yaw->get_reverse()?-1:1), channel_yaw->_dead_zone, channel_yaw->_high);
+        printf("Pitch scale, min:%d, max:%d, trim:%d, reverse:%d dz:%d  high:%d\n",
+               channel_pitch->radio_min, channel_pitch->radio_max,
+               channel_pitch->radio_trim, (channel_pitch->get_reverse()?-1:1), channel_pitch->_dead_zone, channel_pitch->_high);
+        printf("Roll scale, min:%d, max:%d, trim:%d, reverse:%d dz:%d  high:%d\n",
+               channel_roll->radio_min, channel_roll->radio_max,
+               channel_roll->radio_trim, (channel_roll->get_reverse()?-1:1), channel_roll->_dead_zone, channel_roll->_high);
+        printf("Throttle scale, min:%d, max:%d, trim:%d, reverse:%d dz:%d  high:%d\n",
+               channel_throttle->radio_min, channel_throttle->radio_max,
+               channel_throttle->radio_trim, (channel_throttle->get_reverse()?-1:1), channel_throttle->_dead_zone, channel_throttle->_high);
+#endif 
+        
+        // Recompute now so the printf time will be excluded.
+        now = hal.scheduler->micros64();
+    }
+
+    tpfc_loop_last_timestamp = now;
+
 
     // IMU DCM Algorithm
     // --------------------
@@ -264,6 +408,9 @@ void Copter::fast_loop()
 
     // check if ekf has reset target heading
     check_ekf_yaw_reset();
+
+    // Embedded flight control update
+    update_tpfc();
 
     // run the attitude controllers
     update_flight_mode();
@@ -374,6 +521,16 @@ void Copter::ten_hz_logging_loop()
     if (should_log(MASK_LOG_IMU) || should_log(MASK_LOG_IMU_FAST) || should_log(MASK_LOG_IMU_RAW)) {
         DataFlash.Log_Write_Vibration(ins);
     }
+
+    if (should_log(MASK_LOG_FCU) && !should_log(MASK_LOG_FCU_FAST)) {
+        uint16_t pSize = 16;
+        uint16_t parms[pSize];
+    
+        if (ioctl(tpfc_fd, TPFC_IOC_FCU_LOG_GET, (unsigned long)parms) == 0)  {
+            Log_Write_FCU(parms, pSize);
+        }
+    }
+
 #if FRAME_CONFIG == HELI_FRAME
     Log_Write_Heli();
 #endif
@@ -412,8 +569,9 @@ void Copter::fifty_hz_logging_loop()
 void Copter::full_rate_logging_loop()
 {
     if (should_log(MASK_LOG_IMU_FAST) && !should_log(MASK_LOG_IMU_RAW)) {
-        DataFlash.Log_Write_IMU(ins);
+         DataFlash.Log_Write_IMU(ins);
     }
+
     if (should_log(MASK_LOG_IMU_FAST) || should_log(MASK_LOG_IMU_RAW)) {
         DataFlash.Log_Write_IMUDT(ins);
     }
@@ -447,6 +605,70 @@ void Copter::one_hz_loop()
         Log_Write_Data(DATA_AP_STATE, ap.value);
     }
 
+    // If we have new calibration, save it to the EEPROM on the FC processor.
+    // FIXME: Remove when we determine cause of FRAM erase.
+    if (save_calibration) {
+        Vector3f mag = compass.get_offsets();
+        Vector3f trim = ahrs.get_trim();
+        Vector3f accel = ins.get_accel_offsets();
+
+        if (!is_zero(mag.length()) && (mag.length() < COMPASS_OFFSETS_MAX)) {
+            TpfcFloatVector v;
+
+            v.x = mag.x;
+            v.y = mag.y;
+            v.z = mag.z;
+            
+            // printf("Set mag offsets: (%3.2f, %3.2f, %3.2f)\n",
+            //        v.x, v.y, v.z);
+            
+            ioctl(tpfc_fd, TPFC_IOC_MAG_OFFSETS_SET, (unsigned long)&v);
+
+            // printf("saved mag offsets (%3.2f, %3.2f, %3.2f).\n", mag.x, mag.y, mag.z);
+        }
+
+        float trim_limit = ToRad(AP_AHRS_TRIM_LIMIT);
+        
+        if (!is_zero(trim.length()) && (fabsf(trim.x) < trim_limit) && (fabsf(trim.y) <= trim_limit)) {
+            TpfcFloatVector v;
+
+            v.x = trim.x;
+            v.y = trim.y;
+            v.z = trim.z;
+            
+            // printf("Set trim offsets: (%2.4f, %2.4f, %2.4f)\n",
+            //        v.x, v.y, v.z);
+            ioctl(tpfc_fd, TPFC_IOC_TRIM_OFFSETS_SET, (unsigned long)&v);
+        }
+
+        if (!is_zero(accel.length()) && (accel.length() < 3.0f)) {
+            TpfcFloatVector v;
+
+            v.x = accel.x;
+            v.y = accel.y;
+            v.z = accel.z;
+
+            // printf("Set accel offsets: (%2.4f, %2.4f, %2.4f)\n",
+            //        v.x, v.y, v.z);
+
+            ioctl(tpfc_fd, TPFC_IOC_ACCEL_OFFSETS_SET, (unsigned long)&v);
+
+            // Also save the scale.
+            //
+            accel = ins.get_accel_scale();
+
+            if (accel.length() < 2.0f) {
+                v.x = accel.x;
+                v.y = accel.y;
+                v.z = accel.z;
+
+                ioctl(tpfc_fd, TPFC_IOC_ACCEL_SCALE_SET, (unsigned long)&v);
+            }
+        }
+
+        save_calibration = false;
+    }
+    
     // perform pre-arm checks & display failures every 30 seconds
     static uint8_t pre_arm_display_counter = 15;
     pre_arm_display_counter++;
@@ -510,6 +732,9 @@ void Copter::one_hz_loop()
 void Copter::update_GPS(void)
 {
     static uint32_t last_gps_reading[GPS_MAX_INSTANCES];   // time of last gps message
+    static uint32_t last_good_hacc_ms(0);
+    static bool     initial_lock(false);
+    
     bool gps_updated = false;
 
     gps.update();
@@ -518,6 +743,34 @@ void Copter::update_GPS(void)
     for (uint8_t i=0; i<gps.num_sensors(); i++) {
         if (gps.last_message_time_ms(i) != last_gps_reading[i]) {
             last_gps_reading[i] = gps.last_message_time_ms(i);
+
+            // Check horizontal accuracy as a more strict GPS check.
+            // We do not want to allow arming with a marginal GPS
+            // signal.
+            //
+            float hAcc = 0.0f;
+            if (gps.horizontal_accuracy(hAcc)) {
+                if (!initial_lock) {
+                    if (hAcc < GPS_REQUIRED_INITIAL_HACC) {
+                        initial_lock = true;
+                        gps_monitor_ok = true;
+                    }
+                }
+                else {
+                    if (hAcc < GPS_REQUIRED_HACC) {
+                        gps_monitor_ok = true;
+                        last_good_hacc_ms = millis();
+                    }
+                    else {
+                        if (gps_monitor_ok) {
+                            if ((millis() - last_good_hacc_ms) > GPS_OUTAGE_REPORT_DELAY_MS) {
+                                // State transition 
+                                gps_monitor_ok = false;
+                            }
+                        }
+                    }
+                }       
+            }
 
             // log GPS message
             if (should_log(MASK_LOG_GPS)) {
@@ -631,6 +884,263 @@ void Copter::update_altitude()
         Log_Write_Control_Tuning();
     }
 }
+
+
+// Check for any commands from flight control
+void Copter::check_cmd_input() {
+
+    uint32_t reqRegister;
+    
+    if (ioctl(tpfc_fd, TPFC_IOC_INPUT_REQ_GET, (unsigned long)&reqRegister) == 0)  {
+        switch(reqRegister) {
+            // Some commands are handled immediately inline.  Others are
+            // handled at different frequencies by different loops.
+
+        case PX4IO_P_CONTROL_INPUT_REQ_SETHOME:
+            input_cmd = reqRegister;
+            publish_input_cmd_rsp(set_home_to_current_location_and_lock());
+            break;
+        case PX4IO_P_CONTROL_INPUT_REQ_LOST_ON:
+            input_cmd = reqRegister;
+            sound_lost_vehicle_alarm = true;
+            publish_input_cmd_rsp(true);
+            break;
+        case PX4IO_P_CONTROL_INPUT_REQ_LOST_OFF:
+            input_cmd = reqRegister;
+            sound_lost_vehicle_alarm = false;
+            publish_input_cmd_rsp(true);
+            break;
+        case PX4IO_P_CONTROL_INPUT_REQ_ACC_RESET:
+            input_cmd = reqRegister;
+            float trim_roll, trim_pitch;
+            if(ins.calibrate_trim(trim_roll, trim_pitch)) {
+                // reset ahrs trim
+                //
+                ahrs.set_trim(Vector3f(trim_roll, trim_pitch, 0));
+                set_new_calibration();
+                publish_input_cmd_rsp(true);
+            }
+            else {
+                publish_input_cmd_rsp(false);
+            }
+            break;
+        case PX4IO_P_CONTROL_INPUT_REQ_NONE:
+        case PX4IO_P_CONTROL_INPUT_REQ_DISARM:
+        case PX4IO_P_CONTROL_INPUT_REQ_ARM:
+            input_cmd = reqRegister;
+        default:
+            // Ignore unknown requests
+            break;
+        }
+    }
+}
+
+void Copter::publish_input_cmd_rsp(bool success) {
+
+    tpfc_input_cmd_rsp_s rspData;
+
+    if (success) {
+        rspData.rsp_code = 0;  // 0 indicates success
+    }
+    else {
+        rspData.rsp_code = 1;
+    }
+
+    printf("cmd %d, reply %d\n", input_cmd, rspData.rsp_code);
+    
+    if (tpfc_input_cmd_rsp_handle > 0) {
+        orb_publish(ORB_ID(tpfc_input_cmd_rsp), tpfc_input_cmd_rsp_handle, &rspData);
+    }
+    else {
+        tpfc_input_cmd_rsp_handle = orb_advertise(ORB_ID(tpfc_input_cmd_rsp), &rspData);
+    }
+
+    // We are done with this command, clear it
+    //
+    input_cmd = PX4IO_P_CONTROL_INPUT_REQ_NONE;
+}
+
+
+void Copter::update_ctrl_output()  {
+
+    tpfc_autopilot_s apData;
+    int8_t flight_mode = control_mode;
+
+    if (flight_mode == LAND && !landing_with_GPS()) {
+        flight_mode = LAND_NO_GPS;
+    }
+
+    Vector3f angle_targets = attitude_control.angle_ef_targets();
+
+    switch (flight_mode) {
+        case STABILIZE:
+        case ACRO:
+        case ALT_HOLD:
+        case SPORT:
+        case LAND_NO_GPS:
+            apData.target_pitch = 0;
+            apData.target_roll  = 0;
+            apData.target_yaw   = angle_targets.z;
+            break;
+        default:
+            // Autopilot mode.  Send the target angles to FC
+            //
+            apData.target_pitch = angle_targets.y;
+            apData.target_roll  = angle_targets.x;
+            apData.target_yaw   = angle_targets.z;
+            break;
+    }
+
+    
+    apData.target_throttle = motors.get_throttle();
+    apData.is_armed     = motors.armed();
+    apData.flight_mode  = flight_mode;
+
+    apData.gps_state   = position_ok();
+    apData.mag_state   = compass.healthy();
+    apData.ahrs_state  = ahrs.healthy();
+    apData.gyro_state  = ins.get_gyro_health_all();
+    apData.accel_state = ins.get_accel_health_all();
+    apData.home_info   = 0;
+
+    if (distance_to_home_cm > MAX_DIST_TO_HOME) {
+        apData.home_info |= PX4IO_P_CONTROL_OUTPUT_HOME_FAR;
+    }
+
+    if (ap.home_state != HOME_UNSET) {
+        apData.home_info |= PX4IO_P_CONTROL_OUTPUT_HOME_SET;
+    }
+
+    if (barometer.healthy()) {
+        // baro temp
+        apData.temperature = (barometer.get_temperature()*9/5)+32.0f;
+    }
+    else {
+        apData.temperature = 0xffff;
+    }
+
+    apData.fence_breach = (fence.get_breaches() != AC_FENCE_TYPE_NONE);
+    
+    if (tpfc_autopilot_handle > 0) {
+        orb_publish(ORB_ID(tpfc_autopilot), tpfc_autopilot_handle, &apData);
+    }
+    else {
+        tpfc_autopilot_handle = orb_advertise(ORB_ID(tpfc_autopilot), &apData);
+    }
+
+
+    if (should_log(MASK_LOG_CONTROL)) {
+        Log_Write_Control(apData);
+    }
+
+    if (should_log(MASK_LOG_FCU_FAST)) {
+        uint16_t pSize = 16;
+        uint16_t parms[pSize];
+    
+        if (ioctl(tpfc_fd, TPFC_IOC_FCU_LOG_GET, (unsigned long)parms) == 0)  {
+            Log_Write_FCU(parms, pSize);
+        }
+    }
+}
+
+
+void Copter::check_flight_mode()  {
+
+    uint32_t mode = 0;
+    
+    if (ioctl(tpfc_fd, TPFC_IOC_MODE_GET, (unsigned long) &mode) == 0)  {
+        uint8_t eventId = 0;
+
+        if (mode != (uint32_t)control_mode)  {
+            eventId = 100 + mode;
+            Log_Write_Event(eventId);
+        }
+            
+        switch (mode)  {
+            case STABILIZE:
+            case ALT_HOLD:
+            case ACRO:
+            case RTL:
+            case LAND:
+            case BRAKE:
+            case LOITER:
+                set_mode(mode);
+                break;
+            case LAND_NO_GPS:
+                set_mode(LAND);
+                break;
+            default:
+                // Ignore
+                break;
+        }
+    }
+    else  {
+        tpfc_ioctl_errors++;
+    }
+}
+
+
+
+void Copter::update_tpfc()
+{
+    tpfc_loop_count++;
+    tpfc_sensors_s data;
+
+    if (tpfc_send_ekf_data > 0)   {
+                
+        Vector3f      v;
+
+        ahrs.get_NavEKF_const().getEulerAngles(v);
+
+        data.euler_z = v.z;
+        data.euler_y = v.y;
+        data.euler_x = v.x;
+
+        v = ahrs.get_gyro();
+
+        data.gyro_z = v.z;
+        data.gyro_y = v.y;
+        data.gyro_x = v.x;
+
+        v = ahrs.get_accel_ef_blended();
+
+        data.accel_z = v.z;
+        data.accel_y = v.y;
+        data.accel_x = v.x;
+
+        ahrs.get_NavEKF_const().getHAGL(data.altitude);
+
+        //  publish the sensor data to tpfc
+        if (tpfc_sensor_handle > 0) {
+            orb_publish(ORB_ID(tpfc_sensors), tpfc_sensor_handle, &data);
+        }
+        else {
+            tpfc_sensor_handle = orb_advertise(ORB_ID(tpfc_sensors), &data);
+        }
+    }
+
+    if (tpfc_display_ekf_data > 0 &&
+        (tpfc_loop_count % tpfc_display_data_period) == 0)  {
+
+        printf("tpfc data: euler(%3.6f, %3.6f, %3.6f)  gyro(%3.6f, %3.6f, %3.6f)   Alt ekf:%8.3f baro:%d\n",
+               data.euler_x, data.euler_y, data.euler_z,
+               data.gyro_x, data.gyro_y, data.gyro_z,
+               //                 data.accel_x, data.accel_y, data.accel_z,
+               data.altitude, baro_alt);
+    }
+
+    if (tpfc_display_error_data > 0 &&
+        (tpfc_loop_count % tpfc_display_stats_period) == 0)  {
+        
+        printf("tpfc stats, loops:%d  efk err:%d  fd err:%d  ioctl err:%d  ioctl ok:%d\n",
+               tpfc_loop_count, tpfc_ekf_errors, tpfc_bad_fd_errors, tpfc_ioctl_errors, tpfc_ioctl_success);
+    }
+}
+
+void Copter::set_new_calibration() {
+    save_calibration = true;
+}
+
 
 /*
   compatibility with old pde style build
