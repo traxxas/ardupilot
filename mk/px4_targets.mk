@@ -168,7 +168,7 @@ px4-io: px4-io-v1 px4-io-v2
 trxio-v2: $(PX4_ROOT)/Archives/px4io-v2.export
 	$(v) make -C $(PX4_ROOT) px4io-v2_default
 	$(v) /bin/rm -f trxio-v2.bin
-	$(v) cp $(SKETCHBOOK)/AliasProFCU.bin trxio-v2.bin
+	$(v) cp $(SKETCHBOOK)/AtonFCU.bin trxio-v2.bin
 	$(v) mkdir -p $(MK_DIR)/PX4/ROMFS/px4io/
 	$(v) rm -f $(MK_DIR)/PX4/ROMFS/px4io/px4io.bin
 	$(v) cp trxio-v2.bin $(MK_DIR)/PX4/ROMFS/px4io/px4io.bin

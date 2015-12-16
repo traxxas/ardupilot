@@ -658,6 +658,7 @@ void Copter::Log_Sensor_Health()
         sensor_health.compass = compass.healthy();
         Log_Write_Error(ERROR_SUBSYSTEM_COMPASS, (sensor_health.compass ? ERROR_CODE_ERROR_RESOLVED : ERROR_CODE_UNHEALTHY));
     }
+}
 
 struct PACKED log_CONTROL {
     LOG_PACKET_HEADER;

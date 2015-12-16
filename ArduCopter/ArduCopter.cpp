@@ -321,15 +321,9 @@ void Copter::fast_loop()
         float hAcc = 0.0f;
         gps.horizontal_accuracy(hAcc);
 
-        printf("EKF/GPS, status:%d primary:%d fusion:%d originOK:%s  avail:%s  armed:%s  aid mode:%d  fusevel:%s  hAcc:%f  hdop:%d  sats:%d home dist:%d\n",
+        printf("EKF/GPS, status:%d primary:%d  hAcc:%f  hdop:%d  sats:%d home dist:%d\n",
                gps.status(),
                gps.primary_sensor(),
-               ahrs.get_NavEKF_const()._fusionModeGPS,
-               (ahrs.get_NavEKF_const().validOrigin?"Y":"N"),
-               (ahrs.get_NavEKF_const().gpsNotAvailable?"N":"Y"),
-               (ahrs.get_NavEKF_const().vehicleArmed?"Y":"N"),
-               ahrs.get_NavEKF_const().PV_AidingMode,
-               (ahrs.get_NavEKF_const().fuseVelData?"Y":"N"),
                hAcc,
                gps.get_hdop(),
                gps.num_sats(),

@@ -2,6 +2,8 @@
 
 #include "Copter.h"
 
+#include <board_config.h>
+#include <stm32_bkp.h>
 #define ARM_DELAY               20  // called at 10hz so 2 seconds
 #define DISARM_DELAY            20  // called at 10hz so 2 seconds
 #define AUTO_TRIM_DELAY         100 // called at 10hz so 10 seconds
