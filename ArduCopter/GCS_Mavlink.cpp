@@ -698,6 +698,16 @@ bool GCS_MAVLINK::try_send_message(enum ap_message id)
         copter.gcs[chan-MAVLINK_COMM_0].send_battery2(copter.battery);
         break;
 
+    case MSG_BATTERY3:
+        //printf("stream batt3: (%d)\n", copter.get_px4io_battery());
+        mavlink_msg_px4io_param_send(chan, 0, 0, MAV_PX4IO_PARAM_ACTION_VALUE, PX4IO_PARAM_BATTERY_V, copter.get_px4io_battery(), 0);
+        break;
+
+    case MSG_PARAM_STATUS_LED:
+        //printf("stream statusLed: (%d)\n", copter.get_px4io_status_led());
+        mavlink_msg_px4io_param_send(chan, 0, 0, MAV_PX4IO_PARAM_ACTION_VALUE, PX4IO_PARAM_STATUS_LED, copter.get_px4io_status_led(), 0);
+        break;
+
     case MSG_OPTICAL_FLOW:
 #if OPTFLOW == ENABLED
         CHECK_PAYLOAD_SIZE(OPTICAL_FLOW);
@@ -957,6 +967,8 @@ GCS_MAVLINK::data_stream_send(void)
         send_message(MSG_TERRAIN);
 #endif
         send_message(MSG_BATTERY2);
+        send_message(MSG_BATTERY3);
+        send_message(MSG_PARAM_STATUS_LED);
         send_message(MSG_MOUNT_STATUS);
         send_message(MSG_OPTICAL_FLOW);
         send_message(MSG_GIMBAL_REPORT);
@@ -1694,6 +1706,56 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
         break;
 
 #endif
+
+    case MAVLINK_MSG_ID_PX4IO_PARAM:              // MAV ID: 189
+        // decode packet
+        mavlink_px4io_param_t px4ioPacket;
+        mavlink_msg_px4io_param_decode(msg, &px4ioPacket);
+
+        // exit immediately if armed
+        if (copter.motors.armed()) {
+            result = PX4IO_STATUS_PREFLIGHT_ERR;
+            mavlink_msg_px4io_param_send(chan, px4ioPacket.system, px4ioPacket.component, px4ioPacket.param_action, px4ioPacket.param_id, px4ioPacket.param_value, PX4IO_STATUS_PREFLIGHT_ERR);
+            break;
+        }
+
+        result = PX4IO_STATUS_OK;
+
+        switch(px4ioPacket.param_action) {
+
+        // Set param
+        case MAV_PX4IO_PARAM_ACTION_SET:
+            if (copter.set_px4io_param(px4ioPacket.param_id, px4ioPacket.param_value)) {
+                result = PX4IO_STATUS_OTHER_ERR;
+            }
+
+            //printf("Set param value: (%d, %3.2f, %d)\n",
+            //    px4ioPacket.param_id, px4ioPacket.param_value, result);
+            mavlink_msg_px4io_param_send(chan, px4ioPacket.system, px4ioPacket.component, MAV_PX4IO_PARAM_ACTION_VALUE, px4ioPacket.param_id, px4ioPacket.param_value, result);
+
+            //printf("Return param set: (%d, %3.2f, %d, %d, %d)\n",
+            //    px4ioPacket.param_id, px4ioPacket.param_value, result, px4ioPacket.system, px4ioPacket.component);
+            break;
+
+        // Read param
+        case MAV_PX4IO_PARAM_ACTION_READ:
+            px4ioPacket.param_value = (float) copter.get_px4io_param(px4ioPacket.param_id);
+            //printf("Read param value: (%d, %3.2f, %d, %d, %d)\n",
+            //    px4ioPacket.param_id, px4ioPacket.param_value, result, px4ioPacket.system, px4ioPacket.component);
+            mavlink_msg_px4io_param_send(chan, px4ioPacket.system, px4ioPacket.component, MAV_PX4IO_PARAM_ACTION_VALUE, px4ioPacket.param_id, px4ioPacket.param_value, result);
+            break;
+
+        default:
+            result = PX4IO_STATUS_CMD_ERR;
+            break;
+        }
+
+        if (result != PX4IO_STATUS_OK) {
+            // send NAK
+            mavlink_msg_px4io_param_send(chan, px4ioPacket.system, px4ioPacket.component, px4ioPacket.param_action, px4ioPacket.param_id, px4ioPacket.param_value, result);
+        }
+
+        break;
 
 #if CAMERA == ENABLED
     case MAVLINK_MSG_ID_DIGICAM_CONFIGURE:      // MAV ID: 202

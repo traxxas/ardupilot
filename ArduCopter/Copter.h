@@ -585,6 +585,7 @@ private:
     void set_pre_arm_rc_check(bool b);
     void set_using_interlock(bool b);
     void set_motor_emergency_stop(bool b);
+    int16_t set_px4io_param(uint16_t id, float value);
     float get_smoothing_gain();
     void get_pilot_desired_lean_angles(float roll_in, float pitch_in, float &roll_out, float &pitch_out);
     float get_pilot_desired_yaw_rate(int16_t stick_angle);
@@ -599,6 +600,9 @@ private:
     float get_takeoff_trigger_throttle();
     float get_throttle_pre_takeoff(float input_thr);
     float get_surface_tracking_climb_rate(int16_t target_rate, float current_alt_target, float dt);
+    uint16_t get_px4io_param(uint16_t id);
+    int16_t get_px4io_battery();
+    uint16_t get_px4io_status_led();
     void set_accel_throttle_I_from_pilot_throttle(int16_t pilot_throttle);
     void update_poscon_alt_max();
     void rotate_body_frame_to_NE(float &x, float &y);

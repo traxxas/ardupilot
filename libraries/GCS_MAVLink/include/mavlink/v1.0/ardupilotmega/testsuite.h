@@ -1660,6 +1660,54 @@ static void mavlink_test_led_control(uint8_t system_id, uint8_t component_id, ma
         MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
 }
 
+static void mavlink_test_px4io_param(uint8_t system_id, uint8_t component_id, mavlink_message_t *last_msg)
+{
+	mavlink_message_t msg;
+        uint8_t buffer[MAVLINK_MAX_PACKET_LEN];
+        uint16_t i;
+	mavlink_px4io_param_t packet_in = {
+		17.0,17443,151,218,29,96
+    };
+	mavlink_px4io_param_t packet1, packet2;
+        memset(&packet1, 0, sizeof(packet1));
+        	packet1.param_value = packet_in.param_value;
+        	packet1.param_id = packet_in.param_id;
+        	packet1.system = packet_in.system;
+        	packet1.component = packet_in.component;
+        	packet1.param_action = packet_in.param_action;
+        	packet1.status = packet_in.status;
+        
+        
+
+        memset(&packet2, 0, sizeof(packet2));
+	mavlink_msg_px4io_param_encode(system_id, component_id, &msg, &packet1);
+	mavlink_msg_px4io_param_decode(&msg, &packet2);
+        MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
+
+        memset(&packet2, 0, sizeof(packet2));
+	mavlink_msg_px4io_param_pack(system_id, component_id, &msg , packet1.system , packet1.component , packet1.param_action , packet1.param_id , packet1.param_value , packet1.status );
+	mavlink_msg_px4io_param_decode(&msg, &packet2);
+        MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
+
+        memset(&packet2, 0, sizeof(packet2));
+	mavlink_msg_px4io_param_pack_chan(system_id, component_id, MAVLINK_COMM_0, &msg , packet1.system , packet1.component , packet1.param_action , packet1.param_id , packet1.param_value , packet1.status );
+	mavlink_msg_px4io_param_decode(&msg, &packet2);
+        MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
+
+        memset(&packet2, 0, sizeof(packet2));
+        mavlink_msg_to_send_buffer(buffer, &msg);
+        for (i=0; i<mavlink_msg_get_send_buffer_length(&msg); i++) {
+        	comm_send_ch(MAVLINK_COMM_0, buffer[i]);
+        }
+	mavlink_msg_px4io_param_decode(last_msg, &packet2);
+        MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
+        
+        memset(&packet2, 0, sizeof(packet2));
+	mavlink_msg_px4io_param_send(MAVLINK_COMM_1 , packet1.system , packet1.component , packet1.param_action , packet1.param_id , packet1.param_value , packet1.status );
+	mavlink_msg_px4io_param_decode(last_msg, &packet2);
+        MAVLINK_ASSERT(memcmp(&packet1, &packet2, sizeof(packet1)) == 0);
+}
+
 static void mavlink_test_mag_cal_progress(uint8_t system_id, uint8_t component_id, mavlink_message_t *last_msg)
 {
 	mavlink_message_t msg;
@@ -2810,6 +2858,7 @@ static void mavlink_test_ardupilotmega(uint8_t system_id, uint8_t component_id, 
 	mavlink_test_ahrs3(system_id, component_id, last_msg);
 	mavlink_test_autopilot_version_request(system_id, component_id, last_msg);
 	mavlink_test_led_control(system_id, component_id, last_msg);
+	mavlink_test_px4io_param(system_id, component_id, last_msg);
 	mavlink_test_mag_cal_progress(system_id, component_id, last_msg);
 	mavlink_test_mag_cal_report(system_id, component_id, last_msg);
 	mavlink_test_ekf_status_report(system_id, component_id, last_msg);

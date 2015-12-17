@@ -1135,6 +1135,33 @@ void Copter::set_new_calibration() {
     save_calibration = true;
 }
 
+int16_t Copter::set_px4io_param(uint16_t id, float value) {
+    TpfcFloatVector v;
+
+    v.x = (float) id;
+    v.y = value;
+    v.z = 0.;
+
+    // printf("Set_px4io_param: (%3.2f, %3.2f, %3.2f)\n",
+    //        v.x, v.y, v.z);
+
+    return ioctl(tpfc_fd, TPFC_IOC_FCU_PARAM_SET, (unsigned long)&v);
+}
+
+uint16_t Copter::get_px4io_param(uint16_t id) {
+    //printf("Get_px4io_param: (%d)\n",
+    //       id);
+    return ioctl(tpfc_fd, TPFC_IOC_FCU_PARAM_GET, (unsigned long)id);
+}
+
+int16_t Copter::get_px4io_battery() {
+    //printf("Get_px4io_batt\n");
+    return ioctl(tpfc_fd, TPFC_IOC_FCU_BATTERY, (unsigned long) 0);
+}
+
+uint16_t Copter::get_px4io_status_led() {
+    return ioctl(tpfc_fd, TPFC_IOC_FCU_STATUS_LED, (unsigned long) 0);
+}
 
 /*
   compatibility with old pde style build

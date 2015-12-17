@@ -330,8 +330,37 @@
           <entry name="PID_TUNING_STEER" value="5"></entry>
         </enum>
 
-      </enums>
+	<enum name="MAV_PX4IO_PARAM_ACTION">
+		<entry name="MAV_PX4IO_PARAM_ACTION_SET" value="0"><description>Request to set the parameter value</description></entry>
+		<entry name="MAV_PX4IO_PARAM_ACTION_READ" value="1"><description>Request to read the parameter value</description></entry>
+		<entry name="MAV_PX4IO_PARAM_ACTION_VALUE" value="2"><description>Parameter value response</description></entry>
+	</enum>
 
+	<enum name="PX4IO_PARAMS">
+		<entry name="PX4IO_PARAM_FLIGHTMODE" value="18"><description>Flight mode</description></entry>
+		<entry name="PX4IO_PARAM_PITCH_FILM" value="19"><description>Expo Pitch Tilt Angle Setting in FILM</description></entry>
+		<entry name="PX4IO_PARAM_PITCH_SPORT" value="20"><description>Expo Pitch Tilt Angle Setting in SPORT</description></entry>
+		<entry name="PX4IO_PARAM_PITCH_EXPERT" value="21"><description>Expo Pitch Rate Setting in EXPERT</description></entry>
+		<entry name="PX4IO_PARAM_YAW_FILM" value="22"><description>Expo yaw Rate Angle Setting in FILM</description></entry>
+		<entry name="PX4IO_PARAM_YAW_SPORT" value="23"><description>Expo yaw Rate Angle Setting in SPORT</description></entry>
+		<entry name="PX4IO_PARAM_YAW_EXPERT" value="24"><description>Expo yaw Rate Setting in EXPERT</description></entry>
+		<entry name="PX4IO_PARAM_LEFT_AUX" value="25"><description>Transmitter Left AUX Setting</description></entry>
+		<entry name="PX4IO_PARAM_BEEP_OVERRIDE" value="26"><description>Disable Transmitter Beeps during Altitude Hold/Loiter</description></entry>
+		<entry name="PX4IO_PARAM_LIGHTING_MODE" value="27"><description>Current Lighting Modes</description></entry>
+		<entry name="PX4IO_PARAM_STATUS_LED" value="28"><description>Status of the Power, GPS, Home, and Info LEDs</description></entry>
+		<entry name="PX4IO_PARAM_BATTERY_V" value="40"><description>Battery Voltage</description></entry>
+	</enum>
+	
+	<!--  PX4IO status enum -->
+	<enum name="PX4IO_STATUS">
+		<entry name="PX4IO_STATUS_OK" value="0"><description>Status ok</description></entry>
+		<entry name="PX4IO_STATUS_CMD_ERR" value="1"><description>Unknown command or unknown action error</description></entry>
+		<entry name="PX4IO_STATUS_PREFLIGHT_ERR" value="2"><description>Preflight error - vehicle is armed</description></entry>
+		<entry name="PX4IO_STATUS_OTHER_ERR" value="255"><description>Other error</description></entry>
+	</enum>
+
+    </enums>
+	
      <messages>
           <message id="150" name="SENSOR_OFFSETS">
                <description>Offsets and calibrations values for hardware
@@ -708,6 +737,16 @@
         <field type="uint8_t" name="pattern">Pattern (see LED_PATTERN_ENUM)</field>
         <field type="uint8_t" name="custom_len">Custom Byte Length</field>
         <field type="uint8_t[24]" name="custom_bytes">Custom Bytes</field>
+    </message>
+	
+    <message name="PX4IO_PARAM" id="189">
+        <description>PX4IO param message to set/read the onboard parameter utlizing PX4IO_PARAMS.</description>
+        <field type="uint8_t" name="system">System ID</field>
+        <field type="uint8_t" name="component">Component ID</field>
+        <field type="uint8_t" name="param_action">Param action. See the MAV_PARAM_ACTION enum</field>
+        <field type="uint16_t" name="param_id">Onboard parameter id. See PX4IO_PARAMETERS enum</field>
+        <field type="float" name="param_value">Param value</field>
+        <field type="uint8_t" name="status">Message status. See PX4IO_STATUS enum</field>
     </message>
 
     <message name="MAG_CAL_PROGRESS" id="191">
