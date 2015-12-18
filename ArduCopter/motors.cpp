@@ -346,6 +346,69 @@ bool Copter::pre_arm_checks(bool display_failure)
     }
 #endif
 
+
+    // Check AHRS trim...
+    Vector3f trim = ahrs.get_trim();
+
+    if (is_zero(trim.length())) {
+        // Offsets may have been inadvertently lost due to storage
+        // manager/fram issue we cannot find.  See if they can be
+        // restored from TPFC backups.
+        //
+        TpfcFloatVector v;
+        if (ioctl(tpfc_fd, TPFC_IOC_TRIM_OFFSETS_GET, (unsigned long)&v) == 0)  {
+            trim.x = v.x;
+            trim.y = v.y;
+            trim.z = v.z;
+
+            // Count restores in backup register
+            (*(uint32_t *) STM32_BKP_DR10)++;
+
+            ahrs.set_trim(trim);
+            printf("Trim: Restoring backup offsets: (%3.2f, %3.2f, %3.2f)\n",
+                   v.x, v.y, v.z);
+
+        }
+    }
+
+    // Check accelerometer calibration offsets.
+    //
+    Vector3f accel_offsets = ins.get_accel_offsets();
+    
+    if (is_zero(accel_offsets.length())) {
+        // Offsets may have been inadvertently lost due to storage
+        // manager/fram issue we cannot find.  See if they can be
+        // restored from TPFC backups.
+        //
+        TpfcFloatVector offset, scale;
+        if (ioctl(tpfc_fd, TPFC_IOC_ACCEL_OFFSETS_GET, (unsigned long)&offset) == 0 &&
+            ioctl(tpfc_fd, TPFC_IOC_ACCEL_SCALE_GET, (unsigned long)&scale) == 0)  {
+            accel_offsets.x = offset.x;
+            accel_offsets.y = offset.y;
+            accel_offsets.z = offset.z;
+
+            ins.set_accel_offsets(accel_offsets);
+
+            // Count restores in backup register
+            (*(uint32_t *) STM32_BKP_DR10)++;
+
+            printf("Accel: Restoring backup offsets: (%3.2f, %3.2f, %3.2f)\n",
+                   offset.x, offset.y, offset.z);
+
+            Vector3f accel_scale;
+                
+            accel_scale.x = scale.x;
+            accel_scale.y = scale.y;
+            accel_scale.z = scale.z;
+
+            ins.set_accel_scale(accel_scale);
+
+            printf("Accel: Restoring backup scale: (%3.2f, %3.2f, %3.2f)\n",
+                    scale.x, scale.y, scale.z);
+        }
+    }
+
+    
     // check INS
     if ((g.arming_check == ARMING_CHECK_ALL) || (g.arming_check & ARMING_CHECK_INS)) {
         // check accelerometers have been calibrated
@@ -414,67 +477,6 @@ bool Copter::pre_arm_checks(bool display_failure)
             }
         }
 #endif
-    }
-
-    // Check AHRS trim...
-    Vector3f trim = ahrs.get_trim();
-
-    if (is_zero(trim.length())) {
-        // Offsets may have been inadvertently lost due to storage
-        // manager/fram issue we cannot find.  See if they can be
-        // restored from TPFC backups.
-        //
-        TpfcFloatVector v;
-        if (ioctl(tpfc_fd, TPFC_IOC_TRIM_OFFSETS_GET, (unsigned long)&v) == 0)  {
-            trim.x = v.x;
-            trim.y = v.y;
-            trim.z = v.z;
-
-            // Count restores in backup register
-            (*(uint32_t *) STM32_BKP_DR10)++;
-
-            ahrs.set_trim(trim);
-            // printf("Trim: Restoring backup offsets: (%3.2f, %3.2f, %3.2f)\n",
-            //        v.x, v.y, v.z);
-
-        }
-    }
-
-    // Check accelerometer calibration offsets.
-    //
-    Vector3f accel_offsets = ins.get_accel_offsets();
-    
-    if (is_zero(accel_offsets.length())) {
-        // Offsets may have been inadvertently lost due to storage
-        // manager/fram issue we cannot find.  See if they can be
-        // restored from TPFC backups.
-        //
-        TpfcFloatVector offset, scale;
-        if (ioctl(tpfc_fd, TPFC_IOC_ACCEL_OFFSETS_GET, (unsigned long)&offset) == 0 &&
-            ioctl(tpfc_fd, TPFC_IOC_ACCEL_SCALE_GET, (unsigned long)&scale) == 0)  {
-            accel_offsets.x = offset.x;
-            accel_offsets.y = offset.y;
-            accel_offsets.z = offset.z;
-
-            ins.set_accel_offsets(accel_offsets);
-
-            // Count restores in backup register
-            (*(uint32_t *) STM32_BKP_DR10)++;
-
-            // printf("Accel: Restoring backup offsets: (%3.2f, %3.2f, %3.2f)\n",
-             //        offset.x, offset.y, offset.z);
-
-            Vector3f accel_scale;
-                
-            accel_scale.x = scale.x;
-            accel_scale.y = scale.y;
-            accel_scale.z = scale.z;
-
-            ins.set_accel_scale(accel_scale);
-
-            // printf("Accel: Restoring backup scale: (%3.2f, %3.2f, %3.2f)\n",
-            //         scale.x, scale.y, scale.z);
-        }
     }
 
 #if CONFIG_HAL_BOARD != HAL_BOARD_VRBRAIN
