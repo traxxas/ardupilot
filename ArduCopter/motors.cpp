@@ -365,8 +365,8 @@ bool Copter::pre_arm_checks(bool display_failure)
             (*(uint32_t *) STM32_BKP_DR10)++;
 
             ahrs.set_trim(trim);
-            printf("Trim: Restoring backup offsets: (%3.2f, %3.2f, %3.2f)\n",
-                   v.x, v.y, v.z);
+            // printf("Trim: Restoring backup offsets: (%3.2f, %3.2f, %3.2f)\n",
+            //        v.x, v.y, v.z);
 
         }
     }
@@ -392,8 +392,8 @@ bool Copter::pre_arm_checks(bool display_failure)
             // Count restores in backup register
             (*(uint32_t *) STM32_BKP_DR10)++;
 
-            printf("Accel: Restoring backup offsets: (%3.2f, %3.2f, %3.2f)\n",
-                   offset.x, offset.y, offset.z);
+            // printf("Accel: Restoring backup offsets: (%3.2f, %3.2f, %3.2f)\n",
+            //        offset.x, offset.y, offset.z);
 
             Vector3f accel_scale;
                 
@@ -403,8 +403,8 @@ bool Copter::pre_arm_checks(bool display_failure)
 
             ins.set_accel_scale(accel_scale);
 
-            printf("Accel: Restoring backup scale: (%3.2f, %3.2f, %3.2f)\n",
-                    scale.x, scale.y, scale.z);
+            // printf("Accel: Restoring backup scale: (%3.2f, %3.2f, %3.2f)\n",
+            //         scale.x, scale.y, scale.z);
         }
     }
 
