@@ -83,6 +83,7 @@
 #include <board_config.h>
 #include <stm32_gpio.h>
 
+#include <systemlib/git_version.h>
 
 #define MAX_DIST_TO_HOME               1000   // 1000cm = 10m
 
@@ -942,7 +943,7 @@ void Copter::publish_input_cmd_rsp(bool success) {
 
     printf("cmd %d, reply %d\n", input_cmd, rspData.rsp_code);
     
-    if (tpfc_input_cmd_rsp_handle > 0) {
+    if (tpfc_input_cmd_rsp_handle != 0) {
         orb_publish(ORB_ID(tpfc_input_cmd_rsp), tpfc_input_cmd_rsp_handle, &rspData);
     }
     else {
@@ -1015,7 +1016,7 @@ void Copter::update_ctrl_output()  {
 
     apData.fence_breach = (fence.get_breaches() != AC_FENCE_TYPE_NONE);
     
-    if (tpfc_autopilot_handle > 0) {
+    if (tpfc_autopilot_handle != 0) {
         orb_publish(ORB_ID(tpfc_autopilot), tpfc_autopilot_handle, &apData);
     }
     else {
@@ -1105,7 +1106,7 @@ void Copter::update_tpfc()
         ahrs.get_NavEKF_const().getHAGL(data.altitude);
 
         //  publish the sensor data to tpfc
-        if (tpfc_sensor_handle > 0) {
+        if (tpfc_sensor_handle != 0) {
             orb_publish(ORB_ID(tpfc_sensors), tpfc_sensor_handle, &data);
         }
         else {
@@ -1135,32 +1136,92 @@ void Copter::set_new_calibration() {
     save_calibration = true;
 }
 
-int16_t Copter::set_px4io_param(uint16_t id, float value) {
-    TpfcFloatVector v;
+int16_t Copter::set_px4io_param(uint8_t id, int32_t value) {
+    TpfcFcuParam v;
+    int16_t rc = -1;
 
-    v.x = (float) id;
-    v.y = value;
-    v.z = 0.;
+    v.id = id;
+    // TODO: Range check for int16_t, we are reducing precision from
+    // int32_t to int16_t here.
+    v.value = value;
 
-    // printf("Set_px4io_param: (%3.2f, %3.2f, %3.2f)\n",
-    //        v.x, v.y, v.z);
+    //    printf("Set_px4io_param: id=%d  value=%d\n",
+    //            v.id, v.value);
 
-    return ioctl(tpfc_fd, TPFC_IOC_FCU_PARAM_SET, (unsigned long)&v);
+    if (id == PX4IO_PARAM_RESET_TO_DEFAULT && value != 0) {
+        rc = ioctl(tpfc_fd, TPFC_IOC_FCU_PARAM_RESET_ALL, 0);
+
+        if (rc == 0) {
+            px4io_parms_reset = true;
+        }
+    }
+    else {
+        rc = ioctl(tpfc_fd, TPFC_IOC_FCU_PARAM_SET, (unsigned long)&v);
+    }
+    
+    return rc;
 }
 
-uint16_t Copter::get_px4io_param(uint16_t id) {
-    //printf("Get_px4io_param: (%d)\n",
-    //       id);
-    return ioctl(tpfc_fd, TPFC_IOC_FCU_PARAM_GET, (unsigned long)id);
+
+int32_t Copter::get_px4io_param(uint8_t id) {
+
+    uint32_t rc;
+    
+    switch (id) {
+        case PX4IO_PARAM_FMU_SW_VERSION: {
+            int a,b,c,d;
+
+            if (sscanf(flt_sw_version, "%d.%d.%d.%d", &a, &b, &c, &d) != 4) {
+                a = 0;
+                b = 0;
+                c = 0;
+                d = 0;
+            }
+
+            rc = (a << 24) |
+                ((b & 0x000000ff) << 16) |
+                ((c & 0x000000ff) << 8) | 
+                (d & 0x000000ff);
+        }
+            break;
+        case PX4IO_PARAM_FC_SW_VERSION:
+            if(ioctl(tpfc_fd, TPFC_IOC_FC_FW_VERSION_GET, (unsigned long)&rc) == 0)  {
+                rc = rc & 0x0000ffff;
+            }
+
+            break;
+        case PX4IO_PARAM_ESC_SW_VERSION:
+            if(ioctl(tpfc_fd, TPFC_IOC_ESC_FW_VERSION_GET, (unsigned long)&rc) == 0)  {
+                rc = rc & 0x0000ffff;
+            }
+
+            break;
+        case PX4IO_PARAM_RESET_TO_DEFAULT:
+            rc = px4io_parms_reset;
+            break;
+        default:
+            rc = ioctl(tpfc_fd, TPFC_IOC_FCU_PARAM_GET, (unsigned long)id);
+            break;
+    }
+
+    //    printf("get_px4io_param: id=%d, val=%d\n", id, rc);
+
+    return rc;
 }
+
+int16_t Copter::reset_px4io_param_to_default()
+{
+    return (ioctl(tpfc_fd, TPFC_IOC_FCU_PARAM_RESET_ALL, 0));
+}
+
 
 int16_t Copter::get_px4io_battery() {
     //printf("Get_px4io_batt\n");
-    return ioctl(tpfc_fd, TPFC_IOC_FCU_BATTERY, (unsigned long) 0);
+    return ioctl(tpfc_fd, TPFC_IOC_FCU_BATTERY_GET, (unsigned long) 0);
 }
 
 uint16_t Copter::get_px4io_status_led() {
-    return ioctl(tpfc_fd, TPFC_IOC_FCU_STATUS_LED, (unsigned long) 0);
+    return ioctl(tpfc_fd, TPFC_IOC_FCU_STATUS_LED_GET, (unsigned long) 0);
 }
 
 /*

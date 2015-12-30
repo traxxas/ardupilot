@@ -1739,7 +1739,7 @@ void GCS_MAVLINK::handleMessage(mavlink_message_t* msg)
 
         // Read param
         case MAV_PX4IO_PARAM_ACTION_READ:
-            px4ioPacket.param_value = (float) copter.get_px4io_param(px4ioPacket.param_id);
+            px4ioPacket.param_value = copter.get_px4io_param(px4ioPacket.param_id);
             //printf("Read param value: (%d, %3.2f, %d, %d, %d)\n",
             //    px4ioPacket.param_id, px4ioPacket.param_value, result, px4ioPacket.system, px4ioPacket.component);
             mavlink_msg_px4io_param_send(chan, px4ioPacket.system, px4ioPacket.component, MAV_PX4IO_PARAM_ACTION_VALUE, px4ioPacket.param_id, px4ioPacket.param_value, result);

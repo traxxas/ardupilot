@@ -349,6 +349,10 @@
 		<entry name="PX4IO_PARAM_LIGHTING_MODE" value="27"><description>Current Lighting Modes</description></entry>
 		<entry name="PX4IO_PARAM_STATUS_LED" value="28"><description>Status of the Power, GPS, Home, and Info LEDs</description></entry>
 		<entry name="PX4IO_PARAM_BATTERY_V" value="40"><description>Battery Voltage</description></entry>
+		<entry name="PX4IO_PARAM_FMU_SW_VERSION" value="41"><description>FMU software version</description></entry>
+		<entry name="PX4IO_PARAM_FC_SW_VERSION" value="42"><description>Flight control software version</description></entry>
+		<entry name="PX4IO_PARAM_ESC_SW_VERSION" value="43"><description>ESC software version</description></entry>
+		<entry name="PX4IO_PARAM_RESET_TO_DEFAULT" value="100"><description>Reset all writable parms to factory defaults</description></entry>
 	</enum>
 	
 	<!--  PX4IO status enum -->
@@ -744,8 +748,8 @@
         <field type="uint8_t" name="system">System ID</field>
         <field type="uint8_t" name="component">Component ID</field>
         <field type="uint8_t" name="param_action">Param action. See the MAV_PARAM_ACTION enum</field>
-        <field type="uint16_t" name="param_id">Onboard parameter id. See PX4IO_PARAMETERS enum</field>
-        <field type="float" name="param_value">Param value</field>
+        <field type="uint8_t" name="param_id">Onboard parameter id. See PX4IO_PARAMETERS enum</field>
+        <field type="int32_t" name="param_value">Param value</field>
         <field type="uint8_t" name="status">Message status. See PX4IO_STATUS enum</field>
     </message>
 

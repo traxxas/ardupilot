@@ -422,6 +422,7 @@ private:
     bool sound_lost_vehicle_alarm;
     bool     gps_monitor_ok;
     bool     save_calibration;
+    bool     px4io_parms_reset;
     uint32_t distance_to_home_cm;
 
     // IMU variables
@@ -572,6 +573,11 @@ private:
     void update_ctrl_output();
     void check_flight_mode();
     void update_tpfc();
+    int16_t set_px4io_param(uint8_t id, int32_t value);
+    int16_t reset_px4io_param_to_default();
+    int32_t get_px4io_param(uint8_t id);
+    int16_t get_px4io_battery();
+    uint16_t get_px4io_status_led();
     void set_home_state(enum HomeState new_home_state);
     bool home_is_set();
     void set_auto_armed(bool b);
@@ -585,7 +591,6 @@ private:
     void set_pre_arm_rc_check(bool b);
     void set_using_interlock(bool b);
     void set_motor_emergency_stop(bool b);
-    int16_t set_px4io_param(uint16_t id, float value);
     float get_smoothing_gain();
     void get_pilot_desired_lean_angles(float roll_in, float pitch_in, float &roll_out, float &pitch_out);
     float get_pilot_desired_yaw_rate(int16_t stick_angle);
@@ -600,9 +605,6 @@ private:
     float get_takeoff_trigger_throttle();
     float get_throttle_pre_takeoff(float input_thr);
     float get_surface_tracking_climb_rate(int16_t target_rate, float current_alt_target, float dt);
-    uint16_t get_px4io_param(uint16_t id);
-    int16_t get_px4io_battery();
-    uint16_t get_px4io_status_led();
     void set_accel_throttle_I_from_pilot_throttle(int16_t pilot_throttle);
     void update_poscon_alt_max();
     void rotate_body_frame_to_NE(float &x, float &y);

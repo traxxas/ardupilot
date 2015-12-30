@@ -91,6 +91,7 @@ Copter::Copter(void) :
     sound_lost_vehicle_alarm(false),
     gps_monitor_ok(false),
     save_calibration(true),
+    px4io_parms_reset(false),
     distance_to_home_cm(0),
     G_Dt(0.0025f),
     inertial_nav(ahrs),
