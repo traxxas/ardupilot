@@ -19,10 +19,10 @@
 
 // default boundaries
 #define AC_FENCE_ALT_MAX_DEFAULT                    122.0f  // default max altitude is 122m, 400 ft
-#define AC_FENCE_CIRCLE_RADIUS_DEFAULT              153.0f  // default circular fence radius is 153m, ~500 ft
+#define AC_FENCE_CIRCLE_RADIUS_DEFAULT              152.4f  // default circular fence radius is 152.4m, ~500 ft
 #define AC_FENCE_ALT_MAX_BACKUP_DISTANCE            20.0f   // after fence is broken we recreate the fence 20m further up
 #define AC_FENCE_CIRCLE_RADIUS_BACKUP_DISTANCE      20.0f   // after fence is broken we recreate the fence 20m further out
-#define AC_FENCE_MARGIN_DEFAULT                     2.0f    // default distance in meters that autopilot's should maintain from the fence to avoid a breach
+#define AC_FENCE_MARGIN_DEFAULT                     0.0f    // default distance in meters that autopilot's should maintain from the fence to avoid a breach
 
 // give up distance
 #define AC_FENCE_GIVE_UP_DISTANCE                   100.0f  // distance outside the fence at which we should give up and just land.  Note: this is not used by library directly but is intended to be used by the main code
