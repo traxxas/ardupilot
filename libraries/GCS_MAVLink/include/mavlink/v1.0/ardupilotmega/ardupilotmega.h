@@ -392,6 +392,17 @@ typedef enum MAV_PX4IO_PARAM_ACTION
 #endif
 
 /** @brief  */
+#ifndef HAVE_ENUM_PX4IO_PARAM_RADIO_LINK_STATUS
+#define HAVE_ENUM_PX4IO_PARAM_RADIO_LINK_STATUS
+typedef enum PX4IO_PARAM_RADIO_LINK_STATUS
+{
+	PX4IO_PARAM_RADIO_LINK_NONE=0, /* Radio link on and functional | */
+	PX4IO_PARAM_RADIO_LINK_DISABLE=1, /* Radio link disabled | */
+	PX4IO_PARAM_RADIO_LINK_STATUS_ENUM_END=2, /*  | */
+} PX4IO_PARAM_RADIO_LINK_STATUS;
+#endif
+
+/** @brief  */
 #ifndef HAVE_ENUM_PX4IO_PARAMS
 #define HAVE_ENUM_PX4IO_PARAMS
 typedef enum PX4IO_PARAMS
@@ -407,6 +418,7 @@ typedef enum PX4IO_PARAMS
 	PX4IO_PARAM_BEEP_OVERRIDE=26, /* Disable Transmitter Beeps during Altitude Hold/Loiter | */
 	PX4IO_PARAM_LIGHTING_MODE=27, /* Current Lighting Modes | */
 	PX4IO_PARAM_STATUS_LED=28, /* Status of the Power, GPS, Home, and Info LEDs | */
+	PX4IO_PARAM_RADIO_LINK_MODE=29, /* Modify radio link between FC and TX | */
 	PX4IO_PARAM_BATTERY_V=40, /* Battery Voltage | */
 	PX4IO_PARAM_FMU_SW_VERSION=41, /* FMU software version | */
 	PX4IO_PARAM_FC_SW_VERSION=42, /* Flight control software version | */
