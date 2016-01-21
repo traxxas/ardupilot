@@ -61,6 +61,9 @@
 
 #define THR_MIN_DEFAULT                  70     // minimum throttle sent to the motors when armed and pilot throttle above zero
 
+#define ALT_HOLD_P            1.5f  // default P gain
+
+
 #define DEFAULT_LOG_BITMASK \
     MASK_LOG_ATTITUDE_MED | \
     MASK_LOG_GPS | \
