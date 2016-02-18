@@ -61,8 +61,6 @@
 
 #define THR_MIN_DEFAULT                  70     // minimum throttle sent to the motors when armed and pilot throttle above zero
 
-#define ALT_HOLD_P            1.5f  // default P gain
-
 
 #define DEFAULT_LOG_BITMASK \
     MASK_LOG_ATTITUDE_MED | \
@@ -73,12 +71,10 @@
     MASK_LOG_RCIN | \
     MASK_LOG_IMU | \
     MASK_LOG_CMD | \
-    MASK_LOG_CURRENT | \
     MASK_LOG_RCOUT | \
     MASK_LOG_OPTFLOW | \
     MASK_LOG_COMPASS | \
     MASK_LOG_CAMERA | \
-    MASK_LOG_MOTBATT | \
     MASK_LOG_FCU_FAST | \
     MASK_LOG_CONTROL
 

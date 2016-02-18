@@ -1200,7 +1200,7 @@ void DataFlash_Class::Log_Write_EKF(AP_AHRS_NavEKF &ahrs, bool optFlowEnabled)
 
 
     // Write fifth EKF packet
-    //    if (optFlowEnabled) {
+    if (optFlowEnabled) {
         float normInnov; // normalised innovation variance ratio for optical flow observations fused by the main nav filter
         float gndOffset; // estimated vertical position of the terrain relative to the nav filter zero datum
         float flowInnovX, flowInnovY; // optical flow LOS rate vector innovations from the main nav filter
@@ -1224,7 +1224,7 @@ void DataFlash_Class::Log_Write_EKF(AP_AHRS_NavEKF &ahrs, bool optFlowEnabled)
             errHAGL : (uint16_t)(100*gndOffsetErr)
          };
         WriteBlock(&pkt5, sizeof(pkt5));
-        //    }
+    }
 }
 #endif
 

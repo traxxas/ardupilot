@@ -24,19 +24,19 @@
  */
 #if APM_BUILD_TYPE(APM_BUILD_ArduCopter)
 // copter defaults
-#define VELNE_NOISE_DEFAULT     0.5f
-#define VELD_NOISE_DEFAULT      0.7f
+#define VELNE_NOISE_DEFAULT     0.4f
+#define VELD_NOISE_DEFAULT      0.5f
 #define POSNE_NOISE_DEFAULT     0.5f
 #define ALT_NOISE_DEFAULT       1.0f
 #define MAG_NOISE_DEFAULT       0.05f
 #define GYRO_PNOISE_DEFAULT     0.015f
-#define ACC_PNOISE_DEFAULT      0.25f
+#define ACC_PNOISE_DEFAULT      0.6f   
 #define GBIAS_PNOISE_DEFAULT    1E-06f
 #define ABIAS_PNOISE_DEFAULT    0.00005f
 #define MAGE_PNOISE_DEFAULT     0.0003f
 #define MAGB_PNOISE_DEFAULT     0.0003f
-#define VEL_GATE_DEFAULT        5
-#define POS_GATE_DEFAULT        10
+#define VEL_GATE_DEFAULT        10
+#define POS_GATE_DEFAULT        15
 #define HGT_GATE_DEFAULT        10
 #define MAG_GATE_DEFAULT        3
 #define MAG_CAL_DEFAULT         2
@@ -2055,7 +2055,7 @@ void NavEKF::FuseVelPosNED()
         if (fuseVelData) {
             // test velocity measurements
             uint8_t imax = 2;
-            if (_fusionModeGPS == 1 || constVelMode) {
+           if (_fusionModeGPS == 1 || constVelMode) {
                 imax = 1;
             }
             float K1 = 0; // innovation to error ratio for IMU1

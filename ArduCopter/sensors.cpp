@@ -17,7 +17,7 @@ void Copter::init_barometer(bool full_calibration)
 void Copter::read_barometer(void)
 {
     barometer.update();
-    if (should_log(MASK_LOG_IMU)) {
+    if (should_log(MASK_LOG_IMU) || should_log(MASK_LOG_IMU_FAST)) {
         Log_Write_Baro();
     }
     baro_alt = barometer.get_altitude() * 100.0f;
