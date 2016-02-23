@@ -1,4 +1,4 @@
-/// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
+ /// -*- tab-width: 4; Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil -*-
 
 #include "Copter.h"
 
@@ -139,6 +139,14 @@ void Copter::rtl_climb_start()
     Location rally_point = rally.calc_best_rally_or_home_location(current_loc, rtl_alt+ahrs.get_home().alt);
     rally_point.alt -= ahrs.get_home().alt; // convert to altitude above home
     rally_point.alt = max(rally_point.alt, current_loc.alt);    // ensure we do not descend before reaching home
+
+#if AC_FENCE == ENABLED
+    // Don't climb above altitude limit
+    if ((fence.get_enabled_fences() & AC_FENCE_TYPE_ALT_MAX) != 0) {
+        rally_point.alt = min(rally_point.alt, fence.get_safe_alt()*100.0f);
+    }
+#endif
+
     destination.z = pv_alt_above_origin(rally_point.alt);
 #else
     destination.z = pv_alt_above_origin(rtl_alt);
@@ -164,10 +172,19 @@ void Copter::rtl_return_start()
     Location rally_point = rally.calc_best_rally_or_home_location(current_loc, rtl_alt+ahrs.get_home().alt);
     rally_point.alt -= ahrs.get_home().alt; // convert to altitude above home
     rally_point.alt = max(rally_point.alt, current_loc.alt);    // ensure we do not descend before reaching home
+
+#if AC_FENCE == ENABLED
+    // Don't climb above altitude limit
+    if ((fence.get_enabled_fences() & AC_FENCE_TYPE_ALT_MAX) != 0) {
+        rally_point.alt = min(rally_point.alt, fence.get_safe_alt()*100.0f);
+    }
+#endif
+
+
     Vector3f destination = pv_location_to_vector(rally_point);
 #else
     Vector3f destination = pv_location_to_vector(ahrs.get_home());
-    destination.z = pv_alt_above_origin(rtl_alt));
+    destination.z = pv_alt_above_origin(rtl_alt);
 #endif
 
     wp_nav.set_wp_destination(destination);

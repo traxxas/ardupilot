@@ -293,7 +293,7 @@ void Copter::update_poscon_alt_max()
 #if AC_FENCE == ENABLED
     // set fence altitude limit in position controller
     if ((fence.get_enabled_fences() & AC_FENCE_TYPE_ALT_MAX) != 0) {
-        alt_limit_cm = pv_alt_above_origin(fence.get_safe_alt()*100.0f);
+        alt_limit_cm = pv_alt_above_origin(fence.get_max_alt()*100.0f);
     }
 #endif
 

@@ -706,7 +706,7 @@ void Copter::Log_Write_Control(const tpfc_autopilot_s& apData)
         ahrs_state      : apData.ahrs_state,
         gyro_state      : apData.gyro_state,
         accel_state     : apData.accel_state,
-        fence_breach    : apData.fence_breach,
+        fence_breach    : apData.fence_breach
     };
 
     DataFlash.WriteBlock(&pkt, sizeof(pkt));
@@ -757,7 +757,7 @@ void Copter::Log_Write_FCU(const uint16_t* data, uint16_t data_size)
         p11             : data[10],
         p12             : data[11],
         p13             : data[12],
-        p14             : data[13],
+        p14             : data[13]
     };                         
 
     DataFlash.WriteBlock(&pkt, sizeof(pkt));
@@ -802,7 +802,7 @@ void Copter::Log_Write_Loiter_Tune()
         vel_target_z    : pos_control._vel_target.z,
         vel_error_x    : pos_control._vel_error.x,
         vel_error_y    : pos_control._vel_error.y,
-        vel_error_z    : pos_control._vel_error.z,
+        vel_error_z    : pos_control._vel_error.z
     };
 
     DataFlash.WriteBlock(&pkt, sizeof(pkt));

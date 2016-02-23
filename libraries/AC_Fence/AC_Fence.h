@@ -22,7 +22,7 @@
 #define AC_FENCE_CIRCLE_RADIUS_DEFAULT              152.4f  // default circular fence radius is 152.4m, ~500 ft
 #define AC_FENCE_ALT_MAX_BACKUP_DISTANCE            20.0f   // after fence is broken we recreate the fence 20m further up
 #define AC_FENCE_CIRCLE_RADIUS_BACKUP_DISTANCE      20.0f   // after fence is broken we recreate the fence 20m further out
-#define AC_FENCE_MARGIN_DEFAULT                     0.0f    // default distance in meters that autopilot's should maintain from the fence to avoid a breach
+#define AC_FENCE_MARGIN_DEFAULT                     2.0f    // default distance in meters that autopilot's should maintain from the fence to avoid a breach
 
 // give up distance
 #define AC_FENCE_GIVE_UP_DISTANCE                   100.0f  // distance outside the fence at which we should give up and just land.  Note: this is not used by library directly but is intended to be used by the main code
@@ -70,8 +70,15 @@ public:
     /// get_action - getter for user requested action on limit breach
     uint8_t get_action() const { return _action.get(); }
 
-    /// get_safe_alt - returns maximum safe altitude (i.e. alt_max - margin)
+    /// get_safe_alt - returns maximum safe altitude (i.e. alt_max -
+    /// margin) at which vehicle can travel (RTH, missions, etc)
     float get_safe_alt() const { return _alt_max - _margin; }
+
+    /// get_alt_max - returns the altitude at which upward throttle is
+    /// taken away from the pilot.  We want this to be above the fence
+    /// for consistent behavior in stablize and autopilot-assisted
+    /// modes like loiter.
+    float get_max_alt() const { return _alt_max + _margin; }
 
     /// manual_recovery_start - caller indicates that pilot is re-taking manual control so fence should be disabled for 10 seconds
     ///     should be called whenever the pilot changes the flight mode
