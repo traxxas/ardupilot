@@ -819,6 +819,7 @@ private:
     bool ekf_over_threshold();
     void failsafe_ekf_event();
     void failsafe_ekf_off_event(void);
+    bool failsafe_ekf_bad_variance(void);
     void esc_calibration_startup_check();
     void esc_calibration_passthrough();
     void esc_calibration_auto();

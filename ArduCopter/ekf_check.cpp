@@ -168,3 +168,9 @@ void Copter::failsafe_ekf_off_event(void)
     failsafe.ekf = false;
     Log_Write_Error(ERROR_SUBSYSTEM_FAILSAFE_EKFINAV, ERROR_CODE_FAILSAFE_RESOLVED);
 }
+
+// Returns true if EKF variances are high
+bool Copter::failsafe_ekf_bad_variance(void)
+{
+    return ekf_check_state.bad_variance;
+}

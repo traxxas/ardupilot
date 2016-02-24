@@ -17,7 +17,7 @@ extern uint32_t tpfc_rtl_brake_velocity_cms;
 // rtl_init - initialise rtl controller
 bool Copter::rtl_init(bool ignore_checks)
 {
-    if (position_ok() || ignore_checks) {
+    if ((position_ok() && !failsafe_ekf_bad_variance()) || ignore_checks) {
         if (tpfc_rtl_brake) {
             rtl_brake_start();
         }

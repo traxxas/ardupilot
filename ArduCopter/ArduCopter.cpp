@@ -991,7 +991,7 @@ void Copter::update_ctrl_output()  {
     apData.is_armed     = motors.armed();
     apData.flight_mode  = flight_mode;
 
-    apData.gps_state   = position_ok();
+    apData.gps_state   = position_ok() && !failsafe_ekf_bad_variance();
     apData.mag_state   = compass.healthy();
     apData.ahrs_state  = ahrs.healthy();
     apData.gyro_state  = ins.get_gyro_health_all();
