@@ -185,7 +185,6 @@ then
                if px4io start norc
                then
                   echo "PX4IO restart OK"
-                  echo "PX4IO restart OK" >> $logfile    
                   tone_alarm MSPAA
                else
                   echo "PX4IO restart failed"
@@ -271,7 +270,15 @@ else
         echo "Have external hmc5883"
     else
         echo "No external hmc5883"
+
+        if mmc5883 -X -C start
+        then
+            echo "Have external mmc5883"
+        else
+            echo "No external mmc5883"
+        fi
     fi
+
 # No internal hmc5883 on Aton
 #    if hmc5883 -C -T -I -R 4 start
 #    then

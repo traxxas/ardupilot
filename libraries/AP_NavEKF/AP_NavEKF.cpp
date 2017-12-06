@@ -394,7 +394,7 @@ NavEKF::NavEKF(const AP_AHRS *ahrs, AP_Baro &baro, const RangeFinder &rng) :
     gpsDVelVarAccScale(0.07f),      // Scale factor applied to vertical velocity measurement variance due to manoeuvre acceleration - used when GPS doesn't report speed error
     gpsPosVarAccScale(0.05f),       // Scale factor applied to horizontal position measurement variance due to manoeuvre acceleration
     msecHgtDelay(60),               // Height measurement delay (msec)
-    msecMagDelay(40),               // Magnetometer measurement delay (msec)
+    msecMagDelay(50),               // Magnetometer measurement delay (msec)
     msecTasDelay(240),              // Airspeed measurement delay (msec)
     gpsRetryTimeUseTAS(10000),      // GPS retry time with airspeed measurements (msec)
     gpsRetryTimeNoTAS(7000),        // GPS retry time without airspeed measurements (msec)
@@ -4404,7 +4404,7 @@ void NavEKF::readMagData()
                 state.body_magfield.y += (nowMagOffsets.y - lastMagOffsets.y) * 0.001f;
                 state.body_magfield.z += (nowMagOffsets.z - lastMagOffsets.z) * 0.001f;
             }
-        lastMagOffsets = nowMagOffsets;
+            lastMagOffsets = nowMagOffsets;
         }
     } else {
         newDataMag = false;
